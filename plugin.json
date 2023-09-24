@@ -9,6 +9,6 @@
     "Website": "https://chelly.net/",
     "IcoPath": "assets/favicon.png",
     "ExecuteFileName": "main.py",
-    "UrlDownload": "https://chelly.net/external/Flow.Launcher.Plugin.FabCalc-1.0.0.zip",
-    "UrlSourceCode": "https://chelly.net/external/Flow.Launcher.Sources.FabCalc-1.0.0.7z"
+    "UrlDownload": "https://github.com/fabiochelly/Flow.Launcher.Plugin.FabCalc/releases/download/1.0.0/Flow.Launcher.Plugin.FabCalc.zip",
+    "UrlSourceCode": "https://github.com/fabiochelly/Flow.Launcher.Plugin.FabCalc/archive/refs/tags/1.0.0.zip"
 }
