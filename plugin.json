@@ -1,0 +1,14 @@
+{
+    "ID": "4f9e42bbcd9045e1969f97293dfaf4c7",
+    "ActionKeyword": "*",
+    "Name": "Flow.Launcher.Plugin.FabCalc",
+    "Description": "Python Calculator",
+    "Author": "Fabio",
+    "Version": "1.0.0",
+    "Language": "python",
+    "Website": "https://chelly.net/",
+    "IcoPath": "assets/favicon.png",
+    "ExecuteFileName": "main.py",
+    "UrlDownload": "https://chelly.net/external/Flow.Launcher.Plugin.FabCalc-1.0.0.zip",
+    "UrlSourceCode": "https://chelly.net/external/Flow.Launcher.Sources.FabCalc-1.0.0.7z"
+}
