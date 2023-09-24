@@ -15,4 +15,22 @@ Ex: 1010bh = A (binary to hexadecimal)
 
 ## Authorized math functions:
 pi, cos, sin, tan, abs, log, log10, log2, exp, sqrt, acos, asin, atan, atan2, ceil,
-floor, degrees, radians, trunc, round, factorial, gcd, pow, !
+floor, degrees, radians, trunc, round, factorial, gcd, pow, !, sha1, sha256
+
+## Unique Identifiers:
+You can enter one of the following keywords to generate a unique ID:
+- uuid
+- ulid
+- cuid (identifier using a timestamp to be sortable, in base 36)
+- sulid (short version of ulid converted to base 62)
+
+Press enter to copy the generated ID to the clipboard
+
+## Hashes:
+You can enter one of the following keywords to generate a hash:
+- md5 <text>
+- sha1 <text>
+- sha256 <text>
+- sha3_256 <text>
+- sha3_512 <text>
+- blake <text>

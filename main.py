@@ -4,6 +4,10 @@ from math import *
 from re import compile as re_compile
 from subprocess import run
 from fractions import Fraction
+import uuid
+import time
+import os
+import hashlib
 
 basedir = dirname(abspath(__file__))
 path.append(join(basedir, "lib"))
@@ -14,9 +18,10 @@ base_rx = re_compile("^[\dA-F]+[hbdo]{1,2}$")
 factor_rx = re_compile("factor\(\s*(\d+)\s*\)")
 factorial_rx = re_compile("(\d+)!")
 fractions_rx = re_compile("(\d+)\s*\/\/\s*(\d+)")
-sym2int = {'0': 0, '1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, 'A': 10, 'B': 11, 'C': 12, 'D': 13, 'E': 14, 'F': 15}
+sym2int = {'0': 0, '1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, 'A': 10, 'B': 11, 'C': 12, 'D': 13, 'E': 14, 'F': 15, 'G': 16, 'H': 17, 'I': 18, 'J': 19, 'K': 20, 'L': 21, 'M': 22, 'N': 23, 'O': 24, 'P': 25, 'Q': 26, 'R': 27, 'S': 28, 'T': 29, 'U': 30, 'V': 31, 'W': 32, 'X': 33, 'Y': 34, 'Z': 35, 'a': 36, 'b': 37, 'c': 38, 'd': 39, 'e': 40, 'f': 41, 'g': 42, 'h': 43, 'i': 44, 'j': 45, 'k': 46, 'l': 47, 'm': 48, 'n': 49, 'o': 50, 'p': 51, 'q': 52, 'r': 53, 's': 54, 't': 55, 'u': 56, 'v': 57, 'w': 58, 'x': 59, 'y': 60, 'z': 61}
 int2sym = {v: k for k, v in sym2int.items()}
-mathfuncs = ["Fraction", "factor", "pi", "cos", "sin", "tan", "abs", "log", "log10", "log2", "exp", "sqrt", "acos", "asin", "atan", "atan2", "ceil", "floor", "degrees", "radians", "trunc", "round", "factorial", "gcd", "pow"]
+uuids = {"uuid", "ulid", "cuid", "sulid"}
+mathfuncs = list(uuids) + ["Fraction", "factor", "pi", "cos", "sin", "tan", "abs", "log", "log10", "log2", "exp", "sqrt", "acos", "asin", "atan", "atan2", "ceil", "floor", "degrees", "radians", "trunc", "round", "factorial", "gcd", "pow"]
 funcs_rx = re_compile(r'\b(?:' + '|'.join(mathfuncs) + r')\b')
 symbols_rx = re_compile(r'[\d\s+*^()!.,/-]+')
 safe_functions = {fn: globals()[fn] for fn in mathfuncs if fn in globals()}
@@ -105,8 +110,41 @@ class FabCalc(FlowLauncher):
         res = FabCalc.int2str(FabCalc.str2int(num, b1), b2)
         return self.response(res, f"{num} {names[b1]} = {res} {names[b2]}")
 
+    @staticmethod
+    def cuid():
+        ts = FabCalc.int2str(int(time.time() * 1000), 36)
+        pid = FabCalc.int2str(os.getpid(), 36)
+        rand_block = hashlib.sha256(os.urandom(8)).hexdigest()[:20].upper()
+        rand_block = FabCalc.int2str(FabCalc.str2int(rand_block, 16), 36)
+        return f"c{ts}{pid}{rand_block}"[:25].lower()
+
+    @staticmethod
+    def uuid(cmd):
+        if cmd == "cuid": return FabCalc.cuid()
+        res = str(uuid.uuid4())
+        if cmd != "uuid": res = res.replace("-", "")
+        if cmd == "sulid": return FabCalc.int2str(FabCalc.str2int(res.upper(), 16), 62)
+        return res
+    
+    @staticmethod
+    def hashes(s):
+        pos = s.find(" ")
+        if pos == -1: return
+        algo = s[:pos]
+        if algo not in ("md5", "sha1", "sha256", "sha3_256", "sha3_512", "blake"): return
+        expr = s[pos + 1:].encode()
+        if algo == "md5": return hashlib.md5(expr).hexdigest()
+        if algo == "sha1": return hashlib.sha1(expr).hexdigest()
+        if algo == "sha256": return hashlib.sha256(expr).hexdigest()
+        if algo == "sha3_256": return hashlib.sha3_256(expr).hexdigest()
+        if algo == "sha3_512": return hashlib.sha3_512(expr).hexdigest()
+        if algo == "blake": return hashlib.blake2b(expr).hexdigest()
+
     def query(self, entry: str = ''):
         try:
+            if entry in uuids: return self.response(FabCalc.uuid(entry), f"{entry.upper()}: press Enter to copy to clipboard")
+            res = FabCalc.hashes(entry)
+            if res: return self.response(res, f"{entry}: press Enter to copy to clipboard")
             query = entry.strip().replace("^", "**")
             query = decimalcomma.sub(".", query)
             if not query or len(query) > 100: return
