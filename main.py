@@ -9,6 +9,7 @@ import time
 import os
 import hashlib
 
+debug = False
 basedir = dirname(abspath(__file__))
 path.append(join(basedir, "lib"))
 from flowlauncher import FlowLauncher
@@ -27,6 +28,8 @@ symbols_rx = re_compile(r'[\d\s+*^()!.,/-]+')
 safe_functions = {fn: globals()[fn] for fn in mathfuncs if fn in globals()}
 decimalcomma = re_compile(r'(?<=\d),(?=\d)')
 xfactor_rx = re_compile("(\d)(x)|(\d)(y)")
+xpower_rx = re_compile("(x)(\d)|(y)(\d)")
+i_rx = re_compile(r"(?<![a-z])i(?![a-z])")
 
 
 class FabCalc(FlowLauncher):
@@ -132,7 +135,7 @@ class FabCalc(FlowLauncher):
         pos = s.find(" ")
         if pos == -1: return
         algo = s[:pos]
-        if algo not in ("md5", "sha1", "sha256", "sha3_256", "sha3_512", "blake"): return
+        if algo not in ("md5", "sha1", "sha256", "sha3_256", "sha3_512", "blake", "sha3", "sha512"): return
         expr = s[pos + 1:].encode()
         if algo == "md5": return hashlib.md5(expr).hexdigest()
         if algo == "sha1": return hashlib.sha1(expr).hexdigest()
@@ -167,20 +170,22 @@ class FabCalc(FlowLauncher):
                 from sympy import symbols, factor, expand, integrate, diff, solve, simplify, I, log, cos, sin, tan, acos, asin, atan, pi, sqrt
                 x, y = symbols("x y")
                 query = xfactor_rx.sub("\\1*\\2", query[1:])
+                query = xpower_rx.sub("\\1**\\2", query)
+                query = i_rx.sub("I", query)
+                fmt_entry = query.replace("pi", "π").replace("**", "^").replace("*", " · ").replace("I", "ⅈ")
                 if not symbols_rx.fullmatch(funcs_rx.sub('', query)): return
                 safe_symbolic = {"__builtins__": None, "x": x, "y": y, "I": I, "Fraction": Fraction, "factor": factor, "expand": expand, "integrate": integrate, "diff": diff, "solve": solve, "simplify": simplify, "log": log, "cos": cos, "sin": sin, "tan": tan, "acos": acos, "asin": asin, "atan": atan, "pi": pi, "sqrt": sqrt}
-                result = str(eval(query, safe_symbolic)).replace("**", "^").replace("*", "·").replace("I", "i")
+                result = str(eval(query, safe_symbolic)).replace("**", "^").replace("*", "·").replace("I", "ⅈ").replace("sqrt", "√").replace("pi", "π")
             else:
                 query = decimalcomma.sub(".", query)
                 res = self.special_entries(entry)
                 if res: return res
                 if not symbols_rx.fullmatch(funcs_rx.sub('', query)): return            
                 result = self.fmtnum(eval(query, {"__builtins__": None}, safe_functions))
-
-            return self.response(result, entry.replace("pi", "π"))
-
-        except Exception:
-            return
+                fmt_entry = entry.replace("pi", "π")
+            return self.response(result, fmt_entry)
+        except Exception as e:
+            if debug: return self.response(str(e), entry)
 
 
 if __name__ == "__main__":

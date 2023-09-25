@@ -1,7 +1,7 @@
-# This plugin for FlowLauncher is an advanced calculator (algebric and symbolic calculations) using the default Python expressions evaluator
+# This plugin for FlowLauncher is an advanced calculator (algebric and symbolic calculations) using Python eval
 
 ## Fractions:
-Use doubles slashes for fractions. Ex: 1//2+3//7 = 13/14
+Use doubles slashes to get results with fractions. Ex: 1//2+3//7 = 13/14
 
 ## Integer factorization:
 Use factor(n) to get the prime factorization of n. Ex: factor(123456789) = 3 · 3 · 3 607 · 3 803
