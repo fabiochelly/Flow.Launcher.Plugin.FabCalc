@@ -1,4 +1,4 @@
-# This plugin for FlowLauncher is an advanced calculator (fast algebric and symbolic calculations) using the default Python expressions evaluator
+# This plugin for FlowLauncher is an advanced calculator (algebric and symbolic calculations) using the default Python expressions evaluator
 
 ## Fractions:
 Use doubles slashes for fractions. Ex: 1//2+3//7 = 13/14
