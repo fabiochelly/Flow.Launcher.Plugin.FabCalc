@@ -30,6 +30,12 @@ decimalcomma = re_compile(r'(?<=\d),(?=\d)')
 xfactor_rx = re_compile("(\d)(x)|(\d)(y)")
 xpower_rx = re_compile("(x)(\d)|(y)(\d)")
 i_rx = re_compile(r"(?<![a-z])i(?![a-z])")
+sqrtnum_rx = re_compile(r"√\((\d+)\)")
+
+
+def fablog(s):
+    with open(join(basedir, "log.txt"), "a", encoding="utf-8") as f:
+        f.write(f"{s}\n")
 
 
 class FabCalc(FlowLauncher):
@@ -148,19 +154,18 @@ class FabCalc(FlowLauncher):
         if entry in uuids: return self.response(FabCalc.uuid(entry), f"{entry.upper()}: press Enter to copy to clipboard")
         res = FabCalc.hashes(entry)
         if res: return self.response(res, f"{entry}: press Enter to copy to clipboard")
-        entry = factorial_rx.sub("factorial(\\1)", entry)
-        entry = fractions_rx.sub("Fraction(\\1,\\2)", entry)
-        
         res = self.basecalc(entry)
         if res: return res
-        
+
         if entry.startswith("factor("):
             m = factor_rx.search(entry)
             return None if m is None else self.response(self.factors(int(m.group(1))), entry)
     
-    # def log(self, s):
-    #     with open(join(basedir, "log.txt"), "a", encoding="utf-8") as f:
-    #         f.write(f"{s}\n")
+    @staticmethod
+    def for_display(entry):
+        res = entry.replace("pi", "π").replace("**", "^").replace("*", " · ").replace("I", "ⅈ").replace("sqrt", "√")
+        return sqrtnum_rx.sub("√\\1", res)
+        
 
     def query(self, entry: str = ''):
         if not entry or len(entry) > 100: return
@@ -172,18 +177,19 @@ class FabCalc(FlowLauncher):
                 query = xfactor_rx.sub("\\1*\\2", query[1:])
                 query = xpower_rx.sub("\\1**\\2", query)
                 query = i_rx.sub("I", query)
-                fmt_entry = query.replace("pi", "π").replace("**", "^").replace("*", " · ").replace("I", "ⅈ")
                 if not symbols_rx.fullmatch(funcs_rx.sub('', query)): return
-                safe_symbolic = {"__builtins__": None, "x": x, "y": y, "I": I, "Fraction": Fraction, "factor": factor, "expand": expand, "integrate": integrate, "diff": diff, "solve": solve, "simplify": simplify, "log": log, "cos": cos, "sin": sin, "tan": tan, "acos": acos, "asin": asin, "atan": atan, "pi": pi, "sqrt": sqrt}
-                result = str(eval(query, safe_symbolic)).replace("**", "^").replace("*", "·").replace("I", "ⅈ").replace("sqrt", "√").replace("pi", "π")
-            else:
-                query = decimalcomma.sub(".", query)
-                res = self.special_entries(entry)
-                if res: return res
-                if not symbols_rx.fullmatch(funcs_rx.sub('', query)): return            
-                result = self.fmtnum(eval(query, {"__builtins__": None}, safe_functions))
-                fmt_entry = entry.replace("pi", "π")
-            return self.response(result, fmt_entry)
+                res = str(eval(query, {"__builtins__": None, "x": x, "y": y, "I": I, "Fraction": Fraction, "factor": factor, "expand": expand, "integrate": integrate, "diff": diff, "solve": solve, "simplify": simplify, "log": log, "cos": cos, "sin": sin, "tan": tan, "acos": acos, "asin": asin, "atan": atan, "pi": pi, "sqrt": sqrt}))
+                return self.response(FabCalc.for_display(res), FabCalc.for_display(query))
+
+            res = self.special_entries(query)
+            if res: return res
+            query = decimalcomma.sub(".", query)
+            query = factorial_rx.sub("factorial(\\1)", query)
+            query = fractions_rx.sub("Fraction(\\1,\\2)", query)
+            if not symbols_rx.fullmatch(funcs_rx.sub('', query)): return            
+            res = self.fmtnum(eval(query, {"__builtins__": None}, safe_functions))
+            return self.response(res, FabCalc.for_display(entry))
+
         except Exception as e:
             if debug: return self.response(str(e), entry)
 
