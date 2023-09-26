@@ -7,8 +7,8 @@
     "Version": "1.1.1",
     "Language": "python",
     "Website": "https://github.com/fabiochelly/Flow.Launcher.Plugin.FabCalc",
-    "IcoPath": "https://github.com/fabiochelly/Flow.Launcher.Plugin.FabCalc/blob/1.1.1/assets/favicon.png",
+    "IcoPath": "https://chelly.net/fabio.png",
     "ExecuteFileName": "main.py",
-    "UrlDownload": "https://github.com/fabiochelly/Flow.Launcher.Plugin.FabCalc/releases/download/1.1.1/Flow.Launcher.Plugin.FabCalc.zip",
-    "UrlSourceCode": "https://github.com/fabiochelly/Flow.Launcher.Plugin.FabCalc/archive/refs/tags/1.1.1.zip"
+    "UrlDownload": "https://github.com/fabiochelly/Flow.Launcher.Plugin.FabCalc/releases/download/v1.1.1/Flow.Launcher.Plugin.FabCalc.zip",
+    "UrlSourceCode": "https://github.com/fabiochelly/Flow.Launcher.Plugin.FabCalc/archive/refs/tags/v1.1.1.zip"
 }
