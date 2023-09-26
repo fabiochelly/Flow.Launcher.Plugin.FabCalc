@@ -141,7 +141,7 @@ class FabCalc(FlowLauncher):
         pos = s.find(" ")
         if pos == -1: return
         algo = s[:pos]
-        if algo not in ("md5", "sha1", "sha256", "sha3_256", "sha3_512", "blake", "sha3", "sha512"): return
+        if algo not in ("md5", "sha1", "sha256", "sha3_256", "sha3_512", "blake"): return
         expr = s[pos + 1:].encode()
         if algo == "md5": return hashlib.md5(expr).hexdigest()
         if algo == "sha1": return hashlib.sha1(expr).hexdigest()
