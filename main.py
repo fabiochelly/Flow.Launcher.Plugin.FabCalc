@@ -8,13 +8,14 @@ import uuid
 import time
 import os
 import hashlib
+import warnings
 
 debug = False
 basedir = dirname(abspath(__file__))
 path.append(join(basedir, "lib"))
 from flowlauncher import FlowLauncher
 
-icon_path = join(basedir, "assets", "favicon.png")
+icon_path = join(basedir, "fabcalc.png")
 base_rx = re_compile("^[\dA-F]+[hbdo]{1,2}$")
 factor_rx = re_compile("factor\(\s*(\d+)\s*\)")
 factorial_rx = re_compile("(\d+)!")
@@ -135,13 +136,13 @@ class FabCalc(FlowLauncher):
         if cmd != "uuid": res = res.replace("-", "")
         if cmd == "sulid": return FabCalc.int2str(FabCalc.str2int(res.upper(), 16), 62)
         return res
-    
+
     @staticmethod
     def hashes(s):
         pos = s.find(" ")
         if pos == -1: return
         algo = s[:pos]
-        if algo not in ("md5", "sha1", "sha256", "sha3_256", "sha3_512", "blake"): return
+        if algo not in ("md5", "sha1", "sha256", "sha3_256", "sha3_512", "blake", "sha3", "sha512"): return
         expr = s[pos + 1:].encode()
         if algo == "md5": return hashlib.md5(expr).hexdigest()
         if algo == "sha1": return hashlib.sha1(expr).hexdigest()
@@ -149,7 +150,7 @@ class FabCalc(FlowLauncher):
         if algo == "sha3_256": return hashlib.sha3_256(expr).hexdigest()
         if algo == "sha3_512": return hashlib.sha3_512(expr).hexdigest()
         if algo == "blake": return hashlib.blake2b(expr).hexdigest()
-    
+
     def special_entries(self, entry):
         if entry in uuids: return self.response(FabCalc.uuid(entry), f"{entry.upper()}: press Enter to copy to clipboard")
         res = FabCalc.hashes(entry)
@@ -160,38 +161,39 @@ class FabCalc(FlowLauncher):
         if entry.startswith("factor("):
             m = factor_rx.search(entry)
             return None if m is None else self.response(self.factors(int(m.group(1))), entry)
-    
+
     @staticmethod
     def for_display(entry):
         res = entry.replace("pi", "π").replace("**", "^").replace("*", " · ").replace("I", "ⅈ").replace("sqrt", "√")
         return sqrtnum_rx.sub("√\\1", res)
-        
 
     def query(self, entry: str = ''):
-        if not entry or len(entry) > 100: return
-        try:
-            query = entry.strip().replace("^", "**")
-            if query.startswith("$"):
-                from sympy import symbols, factor, expand, integrate, diff, solve, simplify, I, log, cos, sin, tan, acos, asin, atan, pi, sqrt
-                x, y = symbols("x y")
-                query = xfactor_rx.sub("\\1*\\2", query[1:])
-                query = xpower_rx.sub("\\1**\\2", query)
-                query = i_rx.sub("I", query)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            if not entry or len(entry) > 100: return
+            try:
+                query = entry.strip().replace("^", "**")
+                if query.startswith("$"):
+                    from sympy import symbols, factor, expand, integrate, diff, solve, simplify, I, log, cos, sin, tan, acos, asin, atan, pi, sqrt
+                    x, y = symbols("x y")
+                    query = xfactor_rx.sub("\\1*\\2", query[1:])
+                    query = xpower_rx.sub("\\1**\\2", query)
+                    query = i_rx.sub("I", query)
+                    if not symbols_rx.fullmatch(funcs_rx.sub('', query)): return
+                    res = str(eval(query, {"__builtins__": None, "x": x, "y": y, "I": I, "Fraction": Fraction, "factor": factor, "expand": expand, "integrate": integrate, "diff": diff, "solve": solve, "simplify": simplify, "log": log, "cos": cos, "sin": sin, "tan": tan, "acos": acos, "asin": asin, "atan": atan, "pi": pi, "sqrt": sqrt}))
+                    return self.response(FabCalc.for_display(res), FabCalc.for_display(query))
+
+                res = self.special_entries(query)
+                if res: return res
+                query = decimalcomma.sub(".", query)
+                query = factorial_rx.sub("factorial(\\1)", query)
+                query = fractions_rx.sub("Fraction(\\1,\\2)", query)
                 if not symbols_rx.fullmatch(funcs_rx.sub('', query)): return
-                res = str(eval(query, {"__builtins__": None, "x": x, "y": y, "I": I, "Fraction": Fraction, "factor": factor, "expand": expand, "integrate": integrate, "diff": diff, "solve": solve, "simplify": simplify, "log": log, "cos": cos, "sin": sin, "tan": tan, "acos": acos, "asin": asin, "atan": atan, "pi": pi, "sqrt": sqrt}))
-                return self.response(FabCalc.for_display(res), FabCalc.for_display(query))
+                res = self.fmtnum(eval(query, {"__builtins__": None}, safe_functions))
+                return self.response(res, FabCalc.for_display(entry))
 
-            res = self.special_entries(query)
-            if res: return res
-            query = decimalcomma.sub(".", query)
-            query = factorial_rx.sub("factorial(\\1)", query)
-            query = fractions_rx.sub("Fraction(\\1,\\2)", query)
-            if not symbols_rx.fullmatch(funcs_rx.sub('', query)): return            
-            res = self.fmtnum(eval(query, {"__builtins__": None}, safe_functions))
-            return self.response(res, FabCalc.for_display(entry))
-
-        except Exception as e:
-            if debug: return self.response(str(e), entry)
+            except Exception as e:
+                if debug: return self.response(str(e), entry)
 
 
 if __name__ == "__main__":
