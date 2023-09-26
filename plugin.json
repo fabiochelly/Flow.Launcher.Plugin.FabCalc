@@ -2,7 +2,7 @@
     "ID": "4f9e42bbcd9045e1969f97293dfaf4c7",
     "ActionKeyword": "*",
     "Name": "Flow.Launcher.Plugin.FabCalc",
-    "Description": "Advanced and Symbolic Calculator",
+    "Description": "Advanced algébric and symbolic Calculator",
     "Author": "Fabio",
     "Version": "1.1.3",
     "Language": "python",
