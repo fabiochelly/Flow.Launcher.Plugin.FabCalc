@@ -32,6 +32,7 @@ xfactor_rx = re_compile("(\d)(x)|(\d)(y)")
 xpower_rx = re_compile("(x)(\d)|(y)(\d)")
 i_rx = re_compile(r"(?<![a-z])i(?![a-z])")
 sqrtnum_rx = re_compile(r"√\((\d+)\)")
+digit_bracket_rx = re_compile(r"(\d)\(")
 
 
 def fablog(s):
@@ -173,6 +174,8 @@ class FabCalc(FlowLauncher):
             if not entry or len(entry) > 100: return
             try:
                 query = entry.strip().replace("^", "**")
+                query = digit_bracket_rx.sub("\\1*(", query)
+                if "(" in query and ")" not in query: query += ")"
                 if query.startswith("$"):
                     from sympy import symbols, factor, expand, integrate, diff, solve, simplify, I, log, cos, sin, tan, acos, asin, atan, pi, sqrt
                     x, y = symbols("x y")
