@@ -42,8 +42,9 @@ class FabCalc(FlowLauncher):
             # Formater en tant que date
             base_datetime = datetime(1970, 1, 1)
             target_datetime = base_datetime + timedelta(seconds=result)
-            return target_datetime.strftime('%Y-%m-%d %H:%M:%S')
-    
+            res = target_datetime.strftime('%Y-%m-%d %H:%M:%S')
+            return res[:10] if res.endswith(" 00:00:00") else res
+
         # Formater en tant que durée
         days, remainder = divmod(int(result), 86400)
         hours, remainder = divmod(remainder, 3600)
