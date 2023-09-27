@@ -1,15 +1,16 @@
 from os.path import dirname, abspath, join
 from sys import path
 from math import pi, cos, sin, tan, log, log10, log2, exp, sqrt, acos, asin, atan, atan2, ceil, floor, degrees, radians, trunc, factorial, gcd, pow
-from re import compile as re_compile
 from subprocess import run
 from fractions import Fraction
 import uuid
-import time
+from time import time
 import os
 import hashlib
 import warnings
 from timeit import default_timer as timer
+from datetime import datetime, timedelta
+from re import findall, subn, sub, match, search, fullmatch
 
 debug = False
 basedir = dirname(abspath(__file__))
@@ -17,23 +18,12 @@ path.append(join(basedir, "lib"))
 from flowlauncher import FlowLauncher
 
 icon_path = join(basedir, "fabcalc.png")
-base_rx = re_compile("^[\dA-F]+[hbdo]{1,2}$")
-factor_rx = re_compile("factors?\(\s*(\d+)\s*\)")
-factorial_rx = re_compile("(\d+)!")
-fractions_rx = re_compile("(\d+)\s*\/\/\s*(\d+)")
 sym2int = {'0': 0, '1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, 'A': 10, 'B': 11, 'C': 12, 'D': 13, 'E': 14, 'F': 15, 'G': 16, 'H': 17, 'I': 18, 'J': 19, 'K': 20, 'L': 21, 'M': 22, 'N': 23, 'O': 24, 'P': 25, 'Q': 26, 'R': 27, 'S': 28, 'T': 29, 'U': 30, 'V': 31, 'W': 32, 'X': 33, 'Y': 34, 'Z': 35, 'a': 36, 'b': 37, 'c': 38, 'd': 39, 'e': 40, 'f': 41, 'g': 42, 'h': 43, 'i': 44, 'j': 45, 'k': 46, 'l': 47, 'm': 48, 'n': 49, 'o': 50, 'p': 51, 'q': 52, 'r': 53, 's': 54, 't': 55, 'u': 56, 'v': 57, 'w': 58, 'x': 59, 'y': 60, 'z': 61}
 int2sym = {v: k for k, v in sym2int.items()}
 uuids = {"uuid", "ulid", "cuid", "sulid"}
 mathfuncs = list(uuids) + ["simplify", "integrate", "diff", "expand", "solve", "x", "y", "I", "Fraction", "factor", "pi", "cos", "sin", "tan", "abs", "log", "log10", "log2", "exp", "sqrt", "acos", "asin", "atan", "atan2", "ceil", "floor", "degrees", "radians", "trunc", "round", "factorial", "gcd", "pow"]
-funcs_rx = re_compile(r'\b(?:' + '|'.join(mathfuncs) + r')\b')
-symbols_rx = re_compile(r'[\d\s+*^()!.,/-]+')
+funcs_pattern = r'\b(?:' + '|'.join(mathfuncs) + r')\b'
 safe_functions = {fn: globals()[fn] for fn in mathfuncs if fn in globals()}
-decimalcomma = re_compile(r'(?<=\d),(?=\d)')
-xfactor_rx = re_compile("(\d)(x)|(\d)(y)")
-xpower_rx = re_compile("(x)(\d)|(y)(\d)")
-i_rx = re_compile(r"(?<![a-z])i(?![a-z])")
-sqrtnum_rx = re_compile(r"√\((\d+)\)")
-digit_bracket_rx = re_compile(r"(\d)\(")
 
 
 def fablog(s):
@@ -42,6 +32,70 @@ def fablog(s):
 
 
 class FabCalc(FlowLauncher):
+
+    @staticmethod
+    def format_date(expr, result):
+        date_pattern = r'\d{4}-\d{2}-\d{2}|now'
+        dates_in_expr = len(findall(date_pattern, expr))
+    
+        if dates_in_expr == 1:
+            # Formater en tant que date
+            base_datetime = datetime(1970, 1, 1)
+            target_datetime = base_datetime + timedelta(seconds=result)
+            return target_datetime.strftime('%Y-%m-%d %H:%M:%S')
+    
+        # Formater en tant que durée
+        days, remainder = divmod(int(result), 86400)
+        hours, remainder = divmod(remainder, 3600)
+        minutes, seconds = divmod(remainder, 60)
+        if days:
+            if not hours and not minutes and not seconds: return f"{days} days"
+            return f"{days} d {hours} h {minutes} m and {seconds} s"
+        return f"{hours} h {minutes} m {seconds} s"
+
+    @staticmethod
+    def replace_with_seconds(expr):
+        if not expr or ("-" not in expr and "now" not in expr and ":" not in expr): return expr, 0
+        # Regex pour identifier la date, l'heure seule
+        pattern = r'(?:(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})(?:\s(?P<hour>\d{2}):(?P<minute>\d{2})(?::(?P<second>\d{2}))?)?)|(?P<only_hour>\d{2}):(?P<only_minute>\d{2})(?::(?P<only_second>\d{2}))?'
+    
+        def compute_value(match):
+            details = match.groupdict()
+    
+            if details['year']:
+                # Si une date est spécifiée
+                year = int(details['year'])
+                month = int(details['month'])
+                day = int(details['day'])
+                hour = int(details['hour']) if details['hour'] else 0
+                minute = int(details['minute']) if details['minute'] else 0
+                second = int(details['second']) if details['second'] else 0
+    
+                base_datetime = datetime(1970, 1, 1)
+                target_datetime = datetime(year, month, day, hour, minute, second)
+                difference = target_datetime - base_datetime
+    
+                return str(int(difference.total_seconds()))
+    
+            elif details['only_hour']:
+                # Si seule une heure est spécifiée
+                hour = int(details['only_hour'])
+                minute = int(details['only_minute']) if details['only_minute'] else 0
+                second = int(details['only_second']) if details['only_second'] else 0
+    
+                return str(hour * 3600 + minute * 60 + second)
+    
+        # Remplacer toutes les occurrences de dates et heures dans la chaîne par leur équivalent en secondes
+        res, cnt = subn(pattern, compute_value, expr)
+        if cnt > 0 or "now" in expr:
+            res = sub(r"\bnow\b", str(time()), res)
+            res = sub(r"\b(\d+)w\b", r"+(\1*7*86400)", res)
+            res = sub(r"\b(\d+)d\b", r"+(\1*86400)", res)
+            res = sub(r"\b(\d+)h\b", r"+(\1*3600)", res)
+            res = sub(r"\b(\d+)m\b", r"+(\1*60)", res)
+            res = sub(r"\b(\d+)s\b", r"+\1", res)
+            cnt += 1
+        return res, cnt
 
     @staticmethod
     def int2str(intval, base):
@@ -128,7 +182,7 @@ class FabCalc(FlowLauncher):
         elif q.startswith("0o"): q = q[2:] + "o"
         elif q.startswith("0") and len(q) > 1 and q[1].isdigit(): q = q[1:] + "o"
 
-        if not base_rx.match(q): return False
+        if not match(r"^[\dA-F]+[hbdo]{1,2}$", q): return False
         ivals = {"b": 2, "o": 8, "d": 10, "h": 16}
         last, prev = q[-1], q[-2]
         if prev in "hdbo": b1, b2, num = ivals[prev], ivals[last], q[:-2]
@@ -140,7 +194,7 @@ class FabCalc(FlowLauncher):
 
     @staticmethod
     def cuid():
-        ts = FabCalc.int2str(int(time.time() * 1000), 36)
+        ts = FabCalc.int2str(int(time() * 1000), 36)
         pid = FabCalc.int2str(os.getpid(), 36)
         rand_block = hashlib.sha256(os.urandom(8)).hexdigest()[:20].upper()
         rand_block = FabCalc.int2str(FabCalc.str2int(rand_block, 16), 36)
@@ -177,13 +231,13 @@ class FabCalc(FlowLauncher):
 
         multiples = entry.startswith("factor(")
         if multiples or entry.startswith("factors("):
-            m = factor_rx.search(entry)
+            m = search(r"factors?\(\s*(\d+)\s*\)", entry)
             return None if m is None else self.response(self.factors(int(m.group(1)), multiples), entry)
 
     @staticmethod
     def for_display(entry):
         res = entry.replace("pi", "π").replace("**", "^").replace("*", " · ").replace("I", "ⅈ").replace("sqrt", "√")
-        return sqrtnum_rx.sub("√\\1", res)
+        return sub(r"√\((\d+)\)", "√\\1", res)
 
     def query(self, entry: str = ''):
         with warnings.catch_warnings():
@@ -191,30 +245,34 @@ class FabCalc(FlowLauncher):
             if not entry or len(entry) > 200: return
             try:
                 query = entry.strip().replace("^", "**")
-                query = digit_bracket_rx.sub("\\1*(", query)
+                query = sub(r"(\d)\(", "\\1*(", query)
                 if "(" in query and ")" not in query: query += ")"
                 if query.startswith("$"):
                     t = timer()
                     from sympy import symbols, factor, expand, integrate, diff, solve, simplify, I, log, cos, sin, tan, acos, asin, atan, pi, sqrt
                     x, y = symbols("x y")
-                    query = xfactor_rx.sub("\\1*\\2", query[1:])
-                    query = xpower_rx.sub("\\1**\\2", query)
-                    query = i_rx.sub("I", query)
-                    if not symbols_rx.fullmatch(funcs_rx.sub('', query)): return
+                    query = sub("(\d)(x)|(\d)(y)", "\\1*\\2", query[1:])
+                    query = sub("(x)(\d)|(y)(\d)", "\\1**\\2", query)
+                    query = sub(r"(?<![a-z])i(?![a-z])", "I", query)
+                    if not fullmatch(r'[\d\s+*^()!.,/-]+', sub(funcs_pattern, '', query)): return
                     res = str(eval(query, {"__builtins__": None, "x": x, "y": y, "I": I, "Fraction": Fraction, "factor": factor, "expand": expand, "integrate": integrate, "diff": diff, "solve": solve, "simplify": simplify, "log": log, "cos": cos, "sin": sin, "tan": tan, "acos": acos, "asin": asin, "atan": atan, "pi": pi, "sqrt": sqrt}))
                     return self.response(FabCalc.for_display(res), FabCalc.for_display(query) + f"   ({timer() - t:.3f}s)")
 
                 res = self.special_entries(query)
                 if res: return res
-                query = decimalcomma.sub(".", query)
-                query = factorial_rx.sub("factorial(\\1)", query)
-                query = fractions_rx.sub("Fraction(\\1,\\2)", query)
-                if not symbols_rx.fullmatch(funcs_rx.sub('', query)): return
-                res = self.fmtnum(eval(query, {"__builtins__": None}, safe_functions))
+                
+                query, datecnt = self.replace_with_seconds(query)
+                query = sub(r'(?<=\d),(?=\d)', ".", query)
+                query = sub("(\d+)!", "factorial(\\1)", query)
+                query = sub("(\d+)\s*//\s*(\d+)", "Fraction(\\1,\\2)", query)
+                if not fullmatch(r'[\d\s+*^()!.,/-]+', sub(funcs_pattern, '', query)): return
+                raw_res = eval(query, {"__builtins__": None}, safe_functions)
+                if datecnt > 0: return self.response(FabCalc.format_date(entry, raw_res), entry)
+                res = self.fmtnum(raw_res)
                 return self.response(res, FabCalc.for_display(entry))
 
             except Exception as e:
-                if debug: return self.response(str(e), entry)
+                if debug: return self.response(str(e), entry + " >> " + query)
 
 
 if __name__ == "__main__":

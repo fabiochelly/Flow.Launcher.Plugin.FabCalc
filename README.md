@@ -44,3 +44,13 @@ Examples:
 `$diff(x*log(x))`
 `$expand((x+y)^2)`
 `$simplify(sin(x)/cos(x))`
+
+## Date and time calculations:
+
+`now - 1975-04-13`
+`2023-09-27 21:59 + 06:55`
+`2023-09-27 - 1969-07-21`
+`2000-01-01 - 1900-01-01`
+`now + 4w`
+`now + 1w 4h 5m`
+`1969-07-21 + 4d 3h 2m`
