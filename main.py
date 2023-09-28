@@ -12,7 +12,7 @@ from timeit import default_timer as timer
 from datetime import datetime, timedelta
 from re import findall, subn, sub, match, search, fullmatch
 
-debug = False
+debug = True
 basedir = dirname(abspath(__file__))
 path.append(join(basedir, "lib"))
 from flowlauncher import FlowLauncher
@@ -21,7 +21,7 @@ icon_path = join(basedir, "fabcalc.png")
 sym2int = {'0': 0, '1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, 'A': 10, 'B': 11, 'C': 12, 'D': 13, 'E': 14, 'F': 15, 'G': 16, 'H': 17, 'I': 18, 'J': 19, 'K': 20, 'L': 21, 'M': 22, 'N': 23, 'O': 24, 'P': 25, 'Q': 26, 'R': 27, 'S': 28, 'T': 29, 'U': 30, 'V': 31, 'W': 32, 'X': 33, 'Y': 34, 'Z': 35, 'a': 36, 'b': 37, 'c': 38, 'd': 39, 'e': 40, 'f': 41, 'g': 42, 'h': 43, 'i': 44, 'j': 45, 'k': 46, 'l': 47, 'm': 48, 'n': 49, 'o': 50, 'p': 51, 'q': 52, 'r': 53, 's': 54, 't': 55, 'u': 56, 'v': 57, 'w': 58, 'x': 59, 'y': 60, 'z': 61}
 int2sym = {v: k for k, v in sym2int.items()}
 uuids = {"uuid", "ulid", "cuid", "sulid"}
-mathfuncs = list(uuids) + ["simplify", "integrate", "diff", "expand", "solve", "x", "y", "I", "Fraction", "factor", "pi", "cos", "sin", "tan", "abs", "log", "log10", "log2", "exp", "sqrt", "acos", "asin", "atan", "atan2", "ceil", "floor", "degrees", "radians", "trunc", "round", "factorial", "gcd", "pow"]
+mathfuncs = list(uuids) + ["series", "expand_trig", "exp", "limit", "oo", "simplify", "integrate", "diff", "expand", "solve", "x", "y", "I", "Fraction", "factor", "pi", "cos", "sin", "tan", "abs", "log", "log10", "log2", "exp", "sqrt", "acos", "asin", "atan", "atan2", "ceil", "floor", "degrees", "radians", "trunc", "round", "factorial", "gcd", "pow"]
 funcs_pattern = r'\b(?:' + '|'.join(mathfuncs) + r')\b'
 safe_functions = {fn: globals()[fn] for fn in mathfuncs if fn in globals()}
 
@@ -42,8 +42,8 @@ class FabCalc(FlowLauncher):
             # Formater en tant que date
             base_datetime = datetime(1970, 1, 1)
             target_datetime = base_datetime + timedelta(seconds=result)
-            res = target_datetime.strftime('%Y-%m-%d %H:%M:%S')
-            return res[:10] if res.endswith(" 00:00:00") else res
+            res = target_datetime.strftime('%A %Y-%m-%d %H:%M:%S')
+            return res[:-9] if res.endswith(" 00:00:00") else res
 
         # Formater en tant que durée
         days, remainder = divmod(int(result), 86400)
@@ -237,7 +237,7 @@ class FabCalc(FlowLauncher):
 
     @staticmethod
     def for_display(entry):
-        res = entry.replace("pi", "π").replace("**", "^").replace("*", " · ").replace("I", "ⅈ").replace("sqrt", "√")
+        res = entry.replace("pi", "π").replace("**", "^").replace("*", " · ").replace("I", "ⅈ").replace("sqrt", "√").replace("oo", "∞")
         return sub(r"√\((\d+)\)", "√\\1", res)
 
     def query(self, entry: str = ''):
@@ -250,13 +250,13 @@ class FabCalc(FlowLauncher):
                 if "(" in query and ")" not in query: query += ")"
                 if query.startswith("$"):
                     t = timer()
-                    from sympy import symbols, factor, expand, integrate, diff, solve, simplify, I, log, cos, sin, tan, acos, asin, atan, pi, sqrt
+                    from sympy import series, expand_trig, oo, exp, limit, symbols, factor, expand, integrate, diff, solve, simplify, I, log, cos, sin, tan, acos, asin, atan, pi, sqrt
                     x, y = symbols("x y")
                     query = sub("(\d)(x)|(\d)(y)", "\\1*\\2", query[1:])
                     query = sub("(x)(\d)|(y)(\d)", "\\1**\\2", query)
                     query = sub(r"(?<![a-z])i(?![a-z])", "I", query)
                     if not fullmatch(r'[\d\s+*^()!.,/-]+', sub(funcs_pattern, '', query)): return
-                    res = str(eval(query, {"__builtins__": None, "x": x, "y": y, "I": I, "Fraction": Fraction, "factor": factor, "expand": expand, "integrate": integrate, "diff": diff, "solve": solve, "simplify": simplify, "log": log, "cos": cos, "sin": sin, "tan": tan, "acos": acos, "asin": asin, "atan": atan, "pi": pi, "sqrt": sqrt}))
+                    res = str(eval(query, {"__builtins__": None, "series": series, "expand_trig": expand_trig, "oo": oo, "exp": exp, "limit": limit,  "x": x, "y": y, "I": I, "Fraction": Fraction, "factor": factor, "expand": expand, "integrate": integrate, "diff": diff, "solve": solve, "simplify": simplify, "log": log, "cos": cos, "sin": sin, "tan": tan, "acos": acos, "asin": asin, "atan": atan, "pi": pi, "sqrt": sqrt}))
                     return self.response(FabCalc.for_display(res), FabCalc.for_display(query) + f"   ({timer() - t:.3f}s)")
 
                 res = self.special_entries(query)

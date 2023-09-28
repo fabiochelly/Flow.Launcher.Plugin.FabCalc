@@ -44,6 +44,9 @@ Examples:
 `$diff(x*log(x))`
 `$expand((x+y)^2)`
 `$simplify(sin(x)/cos(x))`
+`$limit(x^2/exp(x),x,-oo)`
+`$expand_trig(sin(x + y))`
+`$exp(sin(x)).series(x, 0, 4)`
 
 ## Date and time calculations:
 
