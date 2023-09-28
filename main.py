@@ -12,7 +12,7 @@ from timeit import default_timer as timer
 from datetime import datetime, timedelta
 from re import findall, subn, sub, match, search, fullmatch
 
-debug = True
+debug = False
 basedir = dirname(abspath(__file__))
 path.append(join(basedir, "lib"))
 from flowlauncher import FlowLauncher
