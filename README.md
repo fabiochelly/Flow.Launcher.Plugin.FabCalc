@@ -1,10 +1,9 @@
 # This plugin for FlowLauncher is an advanced calculator (algebric and symbolic calculations) using Python eval
-
-## Fractions:
-Use doubles slashes to get results with fractions. Ex: 1//2+3//7 = 13/14
+Press enter to copy the result to the clipboard
 
 ## Integer factorization:
 Use factor(n) to get the prime factorization of n. Ex: factor(123456789) = 3 · 3 · 3 607 · 3 803
+Use factors(n) to get the list of divisors of n. Ex: factors(123456789) = [3, 3607, 3803]
 
 ## Base conversions:
 Use simple notations to convert to decimal: 0b for binary, 0o for octal, 0x for hexadecimal.
@@ -36,17 +35,18 @@ You can enter one of the following keywords to generate a hash:
 `blake <text>`
 
 ## Symbolic calculations:
-Prefix your calculations with the symbol `$` to get a symbolic calculation.
+You can use one these functions and the symbols x and y to perform symbolic calculations:
 Examples:
-`$solve(3x^2+2x+1)`
-`$factor(2x^4-3x^2)`
-`$integrate(x*log(x))`
-`$diff(x*log(x))`
-`$expand((x+y)^2)`
-`$simplify(sin(x)/cos(x))`
-`$limit(x^2/exp(x),x,-oo)`
-`$expand_trig(sin(x + y))`
-`$exp(sin(x)).series(x, 0, 4)`
+`solve(3x^2+2x+1)`
+`factor(2x^4-3x^2)`
+`integrate(x*log(x))`
+`diff(x*log(x))`
+`expand((x+y)^2)`
+`expand((2+i)*(4-i))`
+`simplify(sin(x)/cos(x))`
+`limit(x^2/exp(x),x,-oo)`
+`expand_trig(sin(x + y))`
+`exp(sin(x)).series(x, 0, 4)`
 
 ## Date and time calculations:
 
