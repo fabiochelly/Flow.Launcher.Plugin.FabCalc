@@ -14,6 +14,7 @@ from re import findall, subn, sub, match, search, fullmatch
 
 basedir = dirname(abspath(__file__))
 path.append(join(basedir, "lib"))
+# noinspection PyUnresolvedReferences
 from flowlauncher import FlowLauncher
 
 def factor(val): return FabCalc.main_intfactor(int(val), True)
@@ -173,6 +174,7 @@ class FabCalc(FlowLauncher):
             }
         }]
 
+    # noinspection PyMethodMayBeStatic
     def copy_to_clipboard(self, text: str):
         p = text.find(" = ")
         if p > -1: text = text[p + 3:].strip()
@@ -235,6 +237,7 @@ class FabCalc(FlowLauncher):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             if not entry or len(entry) > 200: return
+            # noinspection PyBroadException
             try:
                 # Special queries
                 if entry in uuids: return self.response(FabCalc.uuid(entry), f"{entry.upper()}: press Enter to copy to clipboard")
@@ -272,7 +275,7 @@ class FabCalc(FlowLauncher):
                     res2 = eval(query2, {"__builtins__": None}, safe_functions) if cnt else ""
                     if "/" in str(res2): res = self.fmtnum(res2) + "  =  " + res
 
-                return self.response(res, FabCalc.for_display(entry) + " >> " + query)
+                return self.response(res, FabCalc.for_display(entry))
 
             except Exception as e:
                 pass
