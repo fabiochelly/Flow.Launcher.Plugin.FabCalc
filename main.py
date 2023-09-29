@@ -12,19 +12,20 @@ from timeit import default_timer as timer
 from datetime import datetime, timedelta
 from re import findall, subn, sub, match, search, fullmatch
 
-debug = False
 basedir = dirname(abspath(__file__))
 path.append(join(basedir, "lib"))
 from flowlauncher import FlowLauncher
+
+def factor(val): return FabCalc.main_intfactor(int(val), True)
+def factors(val): return FabCalc.main_intfactor(int(val), False)
 
 icon_path = join(basedir, "fabcalc.png")
 sym2int = {'0': 0, '1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, 'A': 10, 'B': 11, 'C': 12, 'D': 13, 'E': 14, 'F': 15, 'G': 16, 'H': 17, 'I': 18, 'J': 19, 'K': 20, 'L': 21, 'M': 22, 'N': 23, 'O': 24, 'P': 25, 'Q': 26, 'R': 27, 'S': 28, 'T': 29, 'U': 30, 'V': 31, 'W': 32, 'X': 33, 'Y': 34, 'Z': 35, 'a': 36, 'b': 37, 'c': 38, 'd': 39, 'e': 40, 'f': 41, 'g': 42, 'h': 43, 'i': 44, 'j': 45, 'k': 46, 'l': 47, 'm': 48, 'n': 49, 'o': 50, 'p': 51, 'q': 52, 'r': 53, 's': 54, 't': 55, 'u': 56, 'v': 57, 'w': 58, 'x': 59, 'y': 60, 'z': 61}
 int2sym = {v: k for k, v in sym2int.items()}
 uuids = {"uuid", "ulid", "cuid", "sulid"}
-mathfuncs = list(uuids) + ["series", "expand_trig", "exp", "limit", "oo", "simplify", "integrate", "diff", "expand", "solve", "x", "y", "I", "Fraction", "factor", "pi", "cos", "sin", "tan", "abs", "log", "log10", "log2", "exp", "sqrt", "acos", "asin", "atan", "atan2", "ceil", "floor", "degrees", "radians", "trunc", "round", "factorial", "gcd", "pow"]
+mathfuncs = list(uuids) + ["factors", "series", "expand_trig", "exp", "limit", "oo", "simplify", "integrate", "diff", "expand", "solve", "x", "y", "I", "Fraction", "factor", "pi", "cos", "sin", "tan", "abs", "log", "log10", "log2", "exp", "sqrt", "acos", "asin", "atan", "atan2", "ceil", "floor", "degrees", "radians", "trunc", "round", "factorial", "gcd", "pow"]
 funcs_pattern = r'\b(?:' + '|'.join(mathfuncs) + r')\b'
 safe_functions = {fn: globals()[fn] for fn in mathfuncs if fn in globals()}
-
 
 def fablog(s):
     with open(join(basedir, "log.txt"), "a", encoding="utf-8") as f:
@@ -120,7 +121,7 @@ class FabCalc(FlowLauncher):
         return res
     
     @staticmethod
-    def primefactors(n, multiples):
+    def sympy_factors(n, multiples):
         from sympy import primefactors
         factors = primefactors(n)
         if not multiples: return str(factors)
@@ -132,10 +133,10 @@ class FabCalc(FlowLauncher):
         return " · ".join(res)
 
     @staticmethod
-    def factors(n, multiples):
+    def main_intfactor(n, multiples):
         length = len(str(n))
         if n < 2 or length > 99: return "Out of range"
-        if length > 15: return FabCalc.primefactors(n, multiples)
+        if length > 15: return FabCalc.sympy_factors(n, multiples)
         res = []
         while n % 2 == 0:
             res.append("2" if multiples else 2)
@@ -147,7 +148,7 @@ class FabCalc(FlowLauncher):
                 n //= i
 
         if n > 2: res.append(FabCalc.fmtint(n) if multiples else n)
-        return " · ".join(res) if multiples else str(sorted(set(res)))
+        return " · ".join([str(el) for el in res]) if multiples else str(sorted(set(res)))
 
     @staticmethod
     def fmtnum(num):
@@ -223,18 +224,6 @@ class FabCalc(FlowLauncher):
         if algo == "sha3_512": return hashlib.sha3_512(expr).hexdigest()
         if algo == "blake": return hashlib.blake2b(expr).hexdigest()
 
-    def special_entries(self, entry):
-        if entry in uuids: return self.response(FabCalc.uuid(entry), f"{entry.upper()}: press Enter to copy to clipboard")
-        res = FabCalc.hashes(entry)
-        if res: return self.response(res, f"{entry}: press Enter to copy to clipboard")
-        res = self.basecalc(entry)
-        if res: return res
-
-        multiples = entry.startswith("factor(")
-        if multiples or entry.startswith("factors("):
-            m = search(r"factors?\(\s*(\d+)\s*\)", entry)
-            return None if m is None else self.response(self.factors(int(m.group(1)), multiples), entry)
-
     @staticmethod
     def for_display(entry):
         res = entry.replace("pi", "π").replace("**", "^").replace("*", " · ").replace("I", "ⅈ").replace("sqrt", "√").replace("oo", "∞")
@@ -259,7 +248,10 @@ class FabCalc(FlowLauncher):
                     res = str(eval(query, {"__builtins__": None, "series": series, "expand_trig": expand_trig, "oo": oo, "exp": exp, "limit": limit,  "x": x, "y": y, "I": I, "Fraction": Fraction, "factor": factor, "expand": expand, "integrate": integrate, "diff": diff, "solve": solve, "simplify": simplify, "log": log, "cos": cos, "sin": sin, "tan": tan, "acos": acos, "asin": asin, "atan": atan, "pi": pi, "sqrt": sqrt}))
                     return self.response(FabCalc.for_display(res), FabCalc.for_display(query) + f"   ({timer() - t:.3f}s)")
 
-                res = self.special_entries(query)
+                if entry in uuids: return self.response(FabCalc.uuid(entry), f"{entry.upper()}: press Enter to copy to clipboard")
+                res = FabCalc.hashes(entry)
+                if res: return self.response(res, f"{entry}: press Enter to copy to clipboard")
+                res = self.basecalc(entry)
                 if res: return res
                 
                 query, datecnt = self.replace_with_seconds(query)
@@ -273,7 +265,8 @@ class FabCalc(FlowLauncher):
                 return self.response(res, FabCalc.for_display(entry))
 
             except Exception as e:
-                if debug: return self.response(str(e), entry + " >> " + query)
+                pass
+                return self.response(str(e), entry + " >> " + query)
 
 
 if __name__ == "__main__":
