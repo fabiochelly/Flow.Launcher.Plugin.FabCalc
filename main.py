@@ -12,7 +12,7 @@ from flowlauncher import FlowLauncher
 def factor(val): return FabCalc.main_intfactor(int(val), True)
 def factors(val): return FabCalc.main_intfactor(int(val), False)
 
-icon_path = join(basedir, "fabcalc.bmp")
+icon_path = join(basedir, "fabcalc.png")
 funcs = ["uuid", "now", "factors", "series", "expand_trig", "exp", "limit", "oo", "simplify", "integrate", "diff", "expand", "solve", "Fraction", "factor", "pi", "cos", "sin", "tan", "abs", "log", "log10", "log2", "exp", "sqrt", "acos", "asin", "atan", "atan2", "ceil", "floor", "degrees", "radians", "trunc", "round", "factorial", "gcd", "pow"]
 funcs_pattern = r'\b(?:' + '|'.join(funcs) + r')\b'
 
