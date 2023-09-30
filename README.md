@@ -17,13 +17,13 @@ pi, cos, sin, tan, abs, log, log10, log2, exp, sqrt, acos, asin, atan, atan2, ce
 floor, degrees, radians, trunc, round, factorial, gcd, pow, !
 
 ## Unique Identifiers:
-You can enter one of the following keywords to generate a unique ID:
+Enter "uuid" generate unique IDs (4 IDs are generated):
 `uuid`
 `ulid`
+`Short version of UUID in base 62`
 `cuid` (identifier using a timestamp to be sortable, in base 36)
-`sulid` (short version of ulid converted to base 62)
 
-Press enter to copy the generated ID to the clipboard
+Press enter to copy one of the generated IDs to the clipboard
 
 ## Hashes:
 You can enter one of the following keywords to generate a hash:

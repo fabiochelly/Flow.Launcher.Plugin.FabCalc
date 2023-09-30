@@ -13,7 +13,7 @@ def factor(val): return FabCalc.main_intfactor(int(val), True)
 def factors(val): return FabCalc.main_intfactor(int(val), False)
 
 icon_path = join(basedir, "fabcalc.png")
-funcs = ["uuid", "ulid", "cuid", "sulid", "now", "factors", "series", "expand_trig", "exp", "limit", "oo", "simplify", "integrate", "diff", "expand", "solve", "Fraction", "factor", "pi", "cos", "sin", "tan", "abs", "log", "log10", "log2", "exp", "sqrt", "acos", "asin", "atan", "atan2", "ceil", "floor", "degrees", "radians", "trunc", "round", "factorial", "gcd", "pow"]
+funcs = ["uuid", "now", "factors", "series", "expand_trig", "exp", "limit", "oo", "simplify", "integrate", "diff", "expand", "solve", "Fraction", "factor", "pi", "cos", "sin", "tan", "abs", "log", "log10", "log2", "exp", "sqrt", "acos", "asin", "atan", "atan2", "ceil", "floor", "degrees", "radians", "trunc", "round", "factorial", "gcd", "pow"]
 funcs_pattern = r'\b(?:' + '|'.join(funcs) + r')\b'
 
 
@@ -138,16 +138,13 @@ class FabCalc(FlowLauncher):
         return str(num) if num < 1000 else f"{num:_}".replace("_", " ")
 
     @staticmethod
-    def response(title: str, subtitle: str):
-        return [{
+    def res(title: str, subtitle: str):
+        return {
             'Title': title,
             'SubTitle': subtitle,
             'IcoPath': icon_path,
-            "JsonRPCAction": {
-                "method": "copy_to_clipboard",
-                "parameters": [title]
-            }
-        }]
+            "JsonRPCAction": {"method": "copy_to_clipboard", "parameters": [title]}
+        }
 
     # noinspection PyMethodMayBeStatic
     def copy_to_clipboard(self, text: str):
@@ -175,7 +172,7 @@ class FabCalc(FlowLauncher):
             res = FabCalc.int2str(int(num, b1), b2)
         except:
             return None
-        return self.response(res, f"{num} {names[b1]} = {res} {names[b2]}")
+        return [self.res(res, f"{num} {names[b1]} = {res} {names[b2]}")]
 
     @staticmethod
     def cuid():
@@ -183,20 +180,25 @@ class FabCalc(FlowLauncher):
         from time import time
         ts = FabCalc.int2str(int(time() * 1000), 36)
         pid = FabCalc.int2str(getpid(), 36)
-        import hashlib
-        rand_block = hashlib.sha256(urandom(8)).hexdigest()[:20].upper()
+        from hashlib import sha256
+        rand_block = sha256(urandom(8)).hexdigest()[:20].upper()
         rand_block = FabCalc.int2str(int(rand_block, 16), 36)
         return f"c{ts}{pid}{rand_block}"[:25].lower()
 
     @staticmethod
-    def uuid(cmd):
-        if cmd == "cuid": return FabCalc.cuid()
-        import uuid
-        res = str(uuid.uuid4())
-        if cmd != "uuid": res = res.replace("-", "")
-        if cmd == "sulid": return FabCalc.int2str(int(res.upper(), 16), 62)
-        return res
-    
+    def uuids():
+        from uuid import uuid4
+        res1 = str(uuid4())
+        res2 = res1.replace("-", "")
+        res3 = FabCalc.int2str(int(res2.upper(), 16), 62)
+        info = "Press Enter to copy to clipboard"
+        return [
+            FabCalc.res(res1, f"UUID : {info}"),
+            FabCalc.res(res2, f"ULID : {info}"),
+            FabCalc.res(res3, f"Short version (base 62) : {info}"),
+            FabCalc.res(FabCalc.cuid(), f"CUID (sortable) : {info}"),
+        ]
+
     @staticmethod
     def is_hash(s):
         p = s.find(" ")
@@ -239,7 +241,7 @@ class FabCalc(FlowLauncher):
         query = sub("(x)(\d)|(y)(\d)", "\\1**\\2", query)
         query = sub(r"(?<![a-z])i(?![a-z])", "I", query)
         res = str(eval(query, {"__builtins__": None, "series": series, "expand_trig": expand_trig, "oo": oo, "exp": exp, "limit": limit, "x": x, "y": y, "I": I, "factor": factor, "expand": expand, "integrate": integrate, "diff": diff, "solve": solve, "simplify": simplify, "log": log, "cos": cos, "sin": sin, "tan": tan, "acos": acos, "asin": asin, "atan": atan, "pi": pi, "sqrt": sqrt}))
-        return self.response(self.for_display(res), self.for_display(query))
+        return [self.res(self.for_display(res), self.for_display(query))]
 
     def query(self, entry: str = ''):
         with warnings.catch_warnings():
@@ -248,8 +250,8 @@ class FabCalc(FlowLauncher):
             # noinspection PyBroadException
             try:
                 # Special entries (hash, UUID, base conversion)
-                if entry in ("uuid", "ulid", "cuid", "sulid"): return self.response(FabCalc.uuid(entry), f"{entry.upper()}: press Enter to copy to clipboard")
-                if self.is_hash(entry): return self.response(self.hashes(entry), f"{entry}: press Enter to copy to clipboard") 
+                if entry == "uuid": return FabCalc.uuids()
+                if self.is_hash(entry): return [self.res(self.hashes(entry), f"{entry}: press Enter to copy to clipboard")] 
                 res = self.basecalc(entry)
                 if res: return res
                 query, datecnt = self.replace_with_seconds(entry)
@@ -269,13 +271,13 @@ class FabCalc(FlowLauncher):
                 res = self.fmtnum(raw)
 
                 # Dates and fractions
-                if datecnt: return self.response(self.format_date(entry, raw), entry)
+                if datecnt: return [self.res(self.format_date(entry, raw), entry)]
                 if "/" in query: res = self.fraction_result(query, res, safe)
 
-                return self.response(res, self.for_display(entry))
+                return [self.res(res, self.for_display(entry))]
 
             except Exception as e:
-                # return self.response(str(e), entry + " >> " + query)
+                # return self.res(str(e), entry + " >> " + query)
                 pass
 
 
