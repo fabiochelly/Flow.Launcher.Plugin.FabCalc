@@ -270,7 +270,7 @@ class FabCalc(FlowLauncher):
         from os import listdir, remove
         from os.path import getmtime
         from time import time
-        t = time() - 120
+        t = time() - 60
         for f in listdir(basedir):
             if f.endswith(".bmp") and getmtime(join(basedir, f)) < t: remove(join(basedir, f))
 
@@ -373,7 +373,7 @@ class FabCalc(FlowLauncher):
                 return [self.res(res, self.for_display(entry))]
 
             except Exception as e:
-                return self.res(str(e), entry)
+                # return self.res(str(e), entry)
                 pass
 
 
