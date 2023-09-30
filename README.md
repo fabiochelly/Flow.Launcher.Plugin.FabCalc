@@ -58,3 +58,8 @@ Examples:
 `now + 1w 4h 5m`
 `1969-07-21 + 4d 3h 2m`
 `07:59 + 14:35 + 11:55`
+
+
+## External IP address
+
+Enter "ipadd" to get your external IP address

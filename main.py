@@ -242,6 +242,11 @@ class FabCalc(FlowLauncher):
         query = sub(r"(?<![a-z])i(?![a-z])", "I", query)
         res = str(eval(query, {"__builtins__": None, "series": series, "expand_trig": expand_trig, "oo": oo, "exp": exp, "limit": limit, "x": x, "y": y, "I": I, "factor": factor, "expand": expand, "integrate": integrate, "diff": diff, "solve": solve, "simplify": simplify, "log": log, "cos": cos, "sin": sin, "tan": tan, "acos": acos, "asin": asin, "atan": atan, "pi": pi, "sqrt": sqrt}))
         return [self.res(self.for_display(res), self.for_display(query))]
+    
+    @staticmethod
+    def ip():
+        from urllib.request import urlopen
+        return urlopen('https://api.ipify.org').read().decode()
 
     def query(self, entry: str = ''):
         with warnings.catch_warnings():
@@ -251,6 +256,7 @@ class FabCalc(FlowLauncher):
             try:
                 # Special entries (hash, UUID, base conversion)
                 if entry == "uuid": return FabCalc.uuids()
+                if entry == "ipadd": return [self.res(self.ip(), "Press Enter to copy to clipboard")]
                 if self.is_hash(entry): return [self.res(self.hashes(entry), f"{entry}: press Enter to copy to clipboard")] 
                 res = self.basecalc(entry)
                 if res: return res
