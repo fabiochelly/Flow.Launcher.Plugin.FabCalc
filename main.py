@@ -13,7 +13,6 @@ def factor(val): return FabCalc.main_intfactor(int(val), True)
 def factors(val): return FabCalc.main_intfactor(int(val), False)
 
 icon_path = join(basedir, "fabcalc.png")
-sym2int = {'0': 0, '1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, 'A': 10, 'B': 11, 'C': 12, 'D': 13, 'E': 14, 'F': 15, 'G': 16, 'H': 17, 'I': 18, 'J': 19, 'K': 20, 'L': 21, 'M': 22, 'N': 23, 'O': 24, 'P': 25, 'Q': 26, 'R': 27, 'S': 28, 'T': 29, 'U': 30, 'V': 31, 'W': 32, 'X': 33, 'Y': 34, 'Z': 35, 'a': 36, 'b': 37, 'c': 38, 'd': 39, 'e': 40, 'f': 41, 'g': 42, 'h': 43, 'i': 44, 'j': 45, 'k': 46, 'l': 47, 'm': 48, 'n': 49, 'o': 50, 'p': 51, 'q': 52, 'r': 53, 's': 54, 't': 55, 'u': 56, 'v': 57, 'w': 58, 'x': 59, 'y': 60, 'z': 61}
 funcs = ["uuid", "ulid", "cuid", "sulid", "now", "factors", "series", "expand_trig", "exp", "limit", "oo", "simplify", "integrate", "diff", "expand", "solve", "Fraction", "factor", "pi", "cos", "sin", "tan", "abs", "log", "log10", "log2", "exp", "sqrt", "acos", "asin", "atan", "atan2", "ceil", "floor", "degrees", "radians", "trunc", "round", "factorial", "gcd", "pow"]
 funcs_pattern = r'\b(?:' + '|'.join(funcs) + r')\b'
 
@@ -38,7 +37,7 @@ class FabCalc(FlowLauncher):
         minutes, seconds = divmod(remainder, 60)
         if days and not hours and not minutes and not seconds: return f"{days} days"
         res = {"d": days, "h": hours, "m": minutes, "s": seconds}
-        return " ".join([f"{v}{k}" for k, v in res.items() if v > 0])
+        return " ".join([f"{val}{suffix}" for suffix, val in res.items() if val > 0])
 
     @staticmethod
     def replace_with_seconds(expr):
@@ -89,24 +88,13 @@ class FabCalc(FlowLauncher):
     @staticmethod
     def int2str(intval, base):
         if base == 10: return str(intval)
+        if base == 16: return hex(intval).upper()[2:]
         res = []
-        int2sym = {v: k for k, v in sym2int.items()}
+        int2sym = {0: '0', 1: '1', 2: '2', 3: '3', 4: '4', 5: '5', 6: '6', 7: '7', 8: '8', 9: '9', 10: 'A', 11: 'B', 12: 'C', 13: 'D', 14: 'E', 15: 'F', 16: 'G', 17: 'H', 18: 'I', 19: 'J', 20: 'K', 21: 'L', 22: 'M', 23: 'N', 24: 'O', 25: 'P', 26: 'Q', 27: 'R', 28: 'S', 29: 'T', 30: 'U', 31: 'V', 32: 'W', 33: 'X', 34: 'Y', 35: 'Z', 36: 'a', 37: 'b', 38: 'c', 39: 'd', 40: 'e', 41: 'f', 42: 'g', 43: 'h', 44: 'i', 45: 'j', 46: 'k', 47: 'l', 48: 'm', 49: 'n', 50: 'o', 51: 'p', 52: 'q', 53: 'r', 54: 's', 55: 't', 56: 'u', 57: 'v', 58: 'w', 59: 'x', 60: 'y', 61: 'z'}
         while intval:
             intval, value = divmod(intval, base)
             res.append(int2sym[value])
         return ''.join(reversed(res))
-
-    @staticmethod
-    def str2int(snum, base):
-        if base == 10: return int(snum)
-        res = 0
-        for c in snum:
-            assert c in sym2int, f'Invalid character for base {base}'
-            value = sym2int[c]
-            assert value < base, f'Invalid digit for base {base}'
-            res *= base
-            res += value
-        return res
     
     @staticmethod
     def sympy_factors(n, multiples):
@@ -183,7 +171,10 @@ class FabCalc(FlowLauncher):
         else: b1, b2, num = ivals[last], ivals[("h" if last == "d" else "d")], q[:-1]
 
         names = {2: "bin", 8: "oct", 10: "dec", 16: "hex"}
-        res = FabCalc.int2str(FabCalc.str2int(num, b1), b2)
+        try:
+            res = FabCalc.int2str(int(num, b1), b2)
+        except:
+            return None
         return self.response(res, f"{num} {names[b1]} = {res} {names[b2]}")
 
     @staticmethod
@@ -194,7 +185,7 @@ class FabCalc(FlowLauncher):
         pid = FabCalc.int2str(getpid(), 36)
         import hashlib
         rand_block = hashlib.sha256(urandom(8)).hexdigest()[:20].upper()
-        rand_block = FabCalc.int2str(FabCalc.str2int(rand_block, 16), 36)
+        rand_block = FabCalc.int2str(int(rand_block, 16), 36)
         return f"c{ts}{pid}{rand_block}"[:25].lower()
 
     @staticmethod
@@ -203,7 +194,7 @@ class FabCalc(FlowLauncher):
         import uuid
         res = str(uuid.uuid4())
         if cmd != "uuid": res = res.replace("-", "")
-        if cmd == "sulid": return FabCalc.int2str(FabCalc.str2int(res.upper(), 16), 62)
+        if cmd == "sulid": return FabCalc.int2str(int(res.upper(), 16), 62)
         return res
     
     @staticmethod
