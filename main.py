@@ -205,14 +205,16 @@ class FabCalc(FlowLauncher):
         if cmd != "uuid": res = res.replace("-", "")
         if cmd == "sulid": return FabCalc.int2str(FabCalc.str2int(res.upper(), 16), 62)
         return res
+    
+    @staticmethod
+    def is_hash(s):
+        p = s.find(" ")
+        return p > -1 and s[:p] in ("md5", "sha1", "sha256", "sha3_256", "sha3_512", "blake")
 
     @staticmethod
     def hashes(s):
         pos = s.find(" ")
-        if pos == -1: return
-        algo = s[:pos]
-        if algo not in ("md5", "sha1", "sha256", "sha3_256", "sha3_512", "blake"): return
-        expr = s[pos + 1:].encode()
+        algo, expr = s[:pos], s[pos + 1:].encode()
         import hashlib
         if algo == "md5": return hashlib.md5(expr).hexdigest()
         if algo == "sha1": return hashlib.sha1(expr).hexdigest()
@@ -234,8 +236,7 @@ class FabCalc(FlowLauncher):
             try:
                 # Special queries
                 if entry in ("uuid", "ulid", "cuid", "sulid"): return self.response(FabCalc.uuid(entry), f"{entry.upper()}: press Enter to copy to clipboard")
-                res = FabCalc.hashes(entry)
-                if res: return self.response(res, f"{entry}: press Enter to copy to clipboard")
+                if self.is_hash(entry): return self.response(self.hashes(entry), f"{entry}: press Enter to copy to clipboard") 
                 res = self.basecalc(entry)
                 if res: return res
                 query, datecnt = self.replace_with_seconds(entry)
@@ -254,7 +255,7 @@ class FabCalc(FlowLauncher):
                     query = sub("(x)(\d)|(y)(\d)", "\\1**\\2", query)
                     query = sub(r"(?<![a-z])i(?![a-z])", "I", query)
                     res = str(eval(query, {"__builtins__": None, "series": series, "expand_trig": expand_trig, "oo": oo, "exp": exp, "limit": limit,  "x": x, "y": y, "I": I, "factor": factor, "expand": expand, "integrate": integrate, "diff": diff, "solve": solve, "simplify": simplify, "log": log, "cos": cos, "sin": sin, "tan": tan, "acos": acos, "asin": asin, "atan": atan, "pi": pi, "sqrt": sqrt}))
-                    return self.response(FabCalc.for_display(res), FabCalc.for_display(query))
+                    return self.response(self.for_display(res), self.for_display(query))
 
                 # Algebric formula
                 query = sub("(\d+)!", "factorial(\\1)", query)
@@ -263,7 +264,7 @@ class FabCalc(FlowLauncher):
                 raw = eval(query, {"__builtins__": None}, safe)
                 res = self.fmtnum(raw)
 
-                if datecnt: return self.response(FabCalc.format_date(entry, raw), entry)
+                if datecnt: return self.response(self.format_date(entry, raw), entry)
                 if "/" in query:
                     from fractions import Fraction
                     safe["Fraction"] = Fraction
@@ -271,7 +272,7 @@ class FabCalc(FlowLauncher):
                     res2 = str(eval(query, {"__builtins__": None}, safe) if cnt else "")
                     if "/" in res2: res = f"{res2}  =  {res}"
 
-                return self.response(res, FabCalc.for_display(entry))
+                return self.response(res, self.for_display(entry))
 
             except Exception as e:
                 pass
