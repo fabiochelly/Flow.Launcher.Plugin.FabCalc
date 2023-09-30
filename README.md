@@ -60,6 +60,12 @@ Examples:
 `07:59 + 14:35 + 11:55`
 
 
-## External IP address
+## IP addresses
 
-Enter "ipadd" to get your external IP address
+Enter "myip" to get your local and external IP addresses
+
+
+## Colors
+
+Enter a hex color color (#RRGGBB or #RGB) to get the RGB and HSV values (and color name - web or calculated name)
+`#dd2266` pink light   RGB (221, 34, 102)   HSL (338°, 73%, 50%)

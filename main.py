@@ -12,12 +12,21 @@ from flowlauncher import FlowLauncher
 def factor(val): return FabCalc.main_intfactor(int(val), True)
 def factors(val): return FabCalc.main_intfactor(int(val), False)
 
-icon_path = join(basedir, "fabcalc.png")
+icon_path = join(basedir, "fabcalc.bmp")
 funcs = ["uuid", "now", "factors", "series", "expand_trig", "exp", "limit", "oo", "simplify", "integrate", "diff", "expand", "solve", "Fraction", "factor", "pi", "cos", "sin", "tan", "abs", "log", "log10", "log2", "exp", "sqrt", "acos", "asin", "atan", "atan2", "ceil", "floor", "degrees", "radians", "trunc", "round", "factorial", "gcd", "pow"]
 funcs_pattern = r'\b(?:' + '|'.join(funcs) + r')\b'
 
 
 class FabCalc(FlowLauncher):
+
+    @staticmethod
+    def create_bmp(rgb=(255, 255, 255)):
+        width, height = 4, 4
+        file_size = 54 + width * height * 3  # taille de l'en-tête + taille des données
+        bf_header = b'BM' + file_size.to_bytes(4, 'little') + b'\x00\x00\x00\x00\x36\x00\x00\x00'
+        bi_header = (b'\x28\x00\x00\x00' + width.to_bytes(4, 'little') + (-height).to_bytes(4, 'little', signed=True) + b'\x01\x00\x18\x00\x00\x00\x00\x00\x00\x00\x00\x00\x13\x0B\x00\x00\x13\x0B\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00')
+        return bf_header + bi_header + bytes(rgb[::-1]) * width * height
+
 
     @staticmethod
     def format_date(expr, result):
@@ -138,11 +147,11 @@ class FabCalc(FlowLauncher):
         return str(num) if num < 1000 else f"{num:_}".replace("_", " ")
 
     @staticmethod
-    def res(title: str, subtitle: str):
+    def res(title: str, subtitle: str, icon=False):
         return {
             'Title': title,
             'SubTitle': subtitle,
-            'IcoPath': icon_path,
+            'IcoPath': icon if icon else icon_path,
             "JsonRPCAction": {"method": "copy_to_clipboard", "parameters": [title]}
         }
 
@@ -246,7 +255,87 @@ class FabCalc(FlowLauncher):
     @staticmethod
     def ip():
         from urllib.request import urlopen
-        return urlopen('https://api.ipify.org').read().decode()
+        from socket import gethostname, gethostbyname
+        hostname = gethostname()
+        local_ip = gethostbyname(hostname)
+        exter_ip =  urlopen('https://api.ipify.org').read().decode()
+        return [
+            FabCalc.res(exter_ip, "External IP : press Enter to copy to clipboard"),
+            FabCalc.res(local_ip, f"Local IP ({hostname}) : press Enter to copy to clipboard"),
+        ]
+
+    @staticmethod
+    def delete_old_bmp():
+        # Delete bmp files older than 5 minutes
+        from os import listdir, remove
+        from os.path import getmtime
+        from time import time
+        t = time() - 120
+        for f in listdir(basedir):
+            if f.endswith(".bmp") and getmtime(join(basedir, f)) < t: remove(join(basedir, f))
+
+    @staticmethod
+    def rgb_to_hsl(r, g, b):
+        r, g, b = r / 255.0, g / 255.0, b / 255.0
+        maxi, mini = max(r, g, b), min(r, g, b)
+        l = (maxi + mini) / 2.0
+    
+        if maxi == mini: h, s = 0, 0
+        else:
+            d = maxi - mini
+            s = d / (2.0 - maxi - mini) if l > 0.5 else d / (maxi + mini)
+            if maxi == r: h = (g - b) / d + (6 if g < b else 0)
+            elif maxi == g: h = (b - r) / d + 2
+            else: h = (r - g) / d + 4
+            h /= 6.0
+        return h, s, l
+    
+    @staticmethod
+    def determine_color_name(h, s, l):
+        h *= 360
+        if s < 0.1:
+            if l < 0.2: return "black"
+            elif l < 0.5: return "dark gray"
+            elif l < 0.8: return "gray"
+            elif l < 0.95: return "light gray"
+            else: return "white"
+    
+        if h < 15 and l < 0.3: return "maroon"
+        if h <= 8 or h >= 343: hue = "red"
+        elif 14 <= h < 25 and l < 0.25: hue = "brown"
+        elif 14 <= h < 45: hue = "orange"
+        elif 45 <= h < 75: hue = "yellow"
+        elif 75 <= h < 170: hue = "green"
+        elif 170 <= h < 260: hue = "blue"
+        elif 260 <= h < 285: hue = "purple"
+        else: hue = "pink"
+    
+        # Intensity
+        if l < 0.2: intensity = "very dark"
+        elif l < 0.35: intensity = "dark"
+        elif l < 0.45: intensity = "medium"
+        elif l < 0.8: intensity = "light"
+        else: intensity = "very light"
+    
+        return f"{hue} {intensity}"
+
+    @staticmethod
+    def color(entry):
+        clr = entry[1:].lower()
+        if len(clr) == 3: clr = clr[0] * 2 + clr[1] * 2 + clr[2] * 2
+        rgb = int(clr[:2], 16), int(clr[2:4], 16), int(clr[4:6], 16)
+        hsl = FabCalc.rgb_to_hsl(*rgb)
+        hue, sat, lig = f"{hsl[0] * 360:.0f}°", f"{hsl[1] * 100:.0f}%", f"{hsl[2] * 100:.0f}%"
+
+        names = {"black": "000000", "0000ff": "blue", "ff00ff": "fuchsia", "008000": "green", "808080": "gray", "00ff00": "lime", "800000": "maroon", "000080": "navy", "808000": "olive", "800080": "purple", "ff0000": "red", "c0c0c0": "silver", "008080": "teal", "ffffff": "white", "ffff00": "yellow", "f0f8ff": "aliceblue", "faebd7": "antiquewhite", "00ffff": "aqua", "7fffd4": "aquamarine", "f0ffff": "azure", "f5f5dc": "beige", "ffe4c4": "bisque", "000000": "black", "ffebcd": "blanchedalmond", "8a2be2": "blueviolet", "a52a2a": "brown", "deb887": "burlywood", "5f9ea0": "cadetblue", "7fff00": "chartreuse", "d2691e": "chocolate", "ff7f50": "coral", "6495ed": "cornflowerblue", "fff8dc": "cornsilk", "dc143c": "crimson", "00008b": "darkblue", "008b8b": "darkcyan", "b8860b": "darkgoldenrod", "a9a9a9": "darkgray", "006400": "darkgreen", "bdb76b": "darkkhaki", "8b008b": "darkmagenta", "556b2f": "darkolivegreen", "ff8c00": "darkorange", "9932cc": "darkorchid", "8b0000": "darkred", "e9967a": "darksalmon", "8fbc8f": "darkseagreen", "483d8b": "darkslateblue", "2f4f4f": "darkslategray", "00ced1": "darkturquoise", "9400d3": "darkviolet", "ff1493": "deeppink", "00bfff": "deepskyblue", "696969": "dimgray", "1e90ff": "dodgerblue", "b22222": "firebrick", "fffaf0": "floralwhite", "228b22": "forestgreen", "dcdcdc": "gainsboro", "f8f8ff": "ghostwhite", "ffd700": "gold", "daa520": "goldenrod", "adff2f": "greenyellow", "f0fff0": "honeydew", "ff69b4": "hotpink", "cd5c5c": "indianred", "4b0082": "indigo", "fffff0": "ivory", "f0e68c": "khaki", "e6e6fa": "lavender", "fff0f5": "lavenderblush", "7cfc00": "lawngreen", "fffacd": "lemonchiffon", "add8e6": "lightblue", "f08080": "lightcoral", "e0ffff": "lightcyan", "fafad2": "lightgoldenrodyellow", "d3d3d3": "lightgray", "90ee90": "lightgreen", "ffb6c1": "lightpink", "ffa07a": "lightsalmon", "20b2aa": "lightseagreen", "87cefa": "lightskyblue", "778899": "lightslategray", "b0c4de": "lightsteelblue", "ffffe0": "lightyellow", "32cd32": "limegreen", "faf0e6": "linen", "66cdaa": "mediumaquamarine", "0000cd": "mediumblue", "ba55d3": "mediumorchid", "9370db": "mediumpurple", "3cb371": "mediumseagreen", "7b68ee": "mediumslateblue", "00fa9a": "mediumspringgreen", "48d1cc": "mediumturquoise", "c71585": "mediumvioletred", "191970": "midnightblue", "f5fffa": "mintcream", "ffe4e1": "mistyrose", "ffe4b5": "moccasin", "ffdead": "navajowhite", "fdf5e6": "oldlace", "6b8e23": "olivedrab", "ffa500": "orange", "ff4500": "orangered", "da70d6": "orchid", "eee8aa": "palegoldenrod", "98fb98": "palegreen", "afeeee": "paleturquoise", "db7093": "palevioletred", "ffefd5": "papayawhip", "ffdab9": "peachpuff", "cd853f": "peru", "ffc0cb": "pink", "dda0dd": "plum", "b0e0e6": "powderblue", "bc8f8f": "rosybrown", "4169e1": "royalblue", "8b4513": "saddlebrown", "fa8072": "salmon", "f4a460": "sandybrown", "2e8b57": "seagreen", "fff5ee": "seashell", "a0522d": "sienna", "87ceeb": "skyblue", "6a5acd": "slateblue", "708090": "slategray", "fffafa": "snow", "00ff7f": "springgreen", "4682b4": "steelblue", "d2b48c": "tan", "d8bfd8": "thistle", "ff6347": "tomato", "40e0d0": "turquoise", "ee82ee": "violet", "f5deb3": "wheat", "f5f5f5": "whitesmoke", "9acd32": "yellowgreen"}
+        name = names.get(clr, FabCalc.determine_color_name(*hsl)) + "   "
+        
+        FabCalc.delete_old_bmp()
+        from uuid import uuid4
+        path = join(basedir, f"{uuid4()}.bmp")
+        open(path, "wb").write(FabCalc.create_bmp(rgb))
+        return [FabCalc.res(f"{name}RGB {rgb}   HSL ({hue}, {sat}, {lig})", f"RGB for {entry}", path)]
+        
 
     def query(self, entry: str = ''):
         with warnings.catch_warnings():
@@ -256,7 +345,8 @@ class FabCalc(FlowLauncher):
             try:
                 # Special entries (hash, UUID, base conversion)
                 if entry == "uuid": return FabCalc.uuids()
-                if entry == "ipadd": return [self.res(self.ip(), "Press Enter to copy to clipboard")]
+                if entry == "myip": return self.ip()
+                if len(entry) in (4,7) and entry.startswith("#") and match(r"^#([A-Fa-f\d]{3}|[A-Fa-f\d]{6})$", entry): return self.color(entry)
                 if self.is_hash(entry): return [self.res(self.hashes(entry), f"{entry}: press Enter to copy to clipboard")] 
                 res = self.basecalc(entry)
                 if res: return res
@@ -283,7 +373,7 @@ class FabCalc(FlowLauncher):
                 return [self.res(res, self.for_display(entry))]
 
             except Exception as e:
-                # return self.res(str(e), entry + " >> " + query)
+                return self.res(str(e), entry)
                 pass
 
 
