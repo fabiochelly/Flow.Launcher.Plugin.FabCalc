@@ -273,7 +273,6 @@ class FabCalc(FlowLauncher):
 
                 # Algebric formula
                 query = sub("(\d+)!", "factorial(\\1)", query)
-                query = sub(r'(?<=\d),(?=\d)', ".", query)
                 safe = {fn: globals()[fn] for fn in funcs if fn in globals()}
                 raw = eval(query, {"__builtins__": None}, safe)
                 res = self.fmtnum(raw)
@@ -285,7 +284,7 @@ class FabCalc(FlowLauncher):
                 return self.response(res, self.for_display(entry))
 
             except Exception as e:
-                return self.response(str(e), entry + " >> " + query)
+                # return self.response(str(e), entry + " >> " + query)
                 pass
 
 
