@@ -25,14 +25,14 @@ class FabCalc(FlowLauncher):
         dates_in_expr = len(findall(r'\d{4}-\d{2}-\d{2}|now', expr))
     
         if dates_in_expr == 1:
-            # Formater en tant que date
+            # Format as date
             from datetime import datetime, timedelta
             base_datetime = datetime(1970, 1, 1)
             target_datetime = base_datetime + timedelta(seconds=result)
             res = target_datetime.strftime('%A %Y-%m-%d %H:%M:%S')
             return res[:-9] if res.endswith(" 00:00:00") else res
 
-        # Formater en tant que durée
+        # Format as duration
         days, remainder = divmod(int(result), 86400)
         hours, remainder = divmod(remainder, 3600)
         minutes, seconds = divmod(remainder, 60)
@@ -44,14 +44,14 @@ class FabCalc(FlowLauncher):
     def replace_with_seconds(expr):
         if not expr or ("-" not in expr and "now" not in expr and ":" not in expr): return expr, 0
         from datetime import datetime
-        # Regex pour identifier la date, l'heure seule
+        # Regex to identify dates and times
         pattern = r'(?:(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})(?:\s(?P<hour>\d{2}):(?P<minute>\d{2})(?::(?P<second>\d{2}))?)?)|(?P<only_hour>\d{2}):(?P<only_minute>\d{2})(?::(?P<only_second>\d{2}))?'
     
         def compute_value(match):
             details = match.groupdict()
     
             if details['year']:
-                # Si une date est spécifiée
+                # A date has been found
                 year = int(details['year'])
                 month = int(details['month'])
                 day = int(details['day'])
@@ -66,14 +66,14 @@ class FabCalc(FlowLauncher):
                 return str(int(difference.total_seconds()))
     
             elif details['only_hour']:
-                # Si seule une heure est spécifiée
+                # Only time has been found
                 hour = int(details['only_hour'])
                 minute = int(details['only_minute']) if details['only_minute'] else 0
                 second = int(details['only_second']) if details['only_second'] else 0
     
                 return str(hour * 3600 + minute * 60 + second)
     
-        # Remplacer toutes les occurrences de dates et heures dans la chaîne par leur équivalent en secondes
+        # Replaces all occurrences of dates and times in the string with their equivalent in seconds
         res, cnt = subn(pattern, compute_value, expr)
         if cnt > 0 or "now" in expr:
             from time import time
@@ -228,34 +228,48 @@ class FabCalc(FlowLauncher):
         res = entry.replace("pi", "π").replace("**", "^").replace("*", " · ").replace("I", "ⅈ").replace("sqrt", "√").replace("oo", "∞")
         return sub(r"√\((\d+)\)", "√\\1", res)
 
+    @staticmethod
+    def fraction_result(query, res, safe):
+        # noinspection PyBroadException
+        try:
+            from fractions import Fraction
+            query, cnt = subn(r"([\d.]+)\s*/\s*([\d.]+)", "Fraction(\\1,\\2)", query)
+            res2 = str(eval(query, {"__builtins__": None, "Fraction": Fraction}, safe) if cnt else "")
+            if "/" in res2: return f"{res2} = {res}"
+        except:
+            pass
+        return res
+
+    def symbolic_eval(self, query):
+        from sympy import series, expand_trig, oo, exp, limit, symbols, factor, expand, integrate, diff, solve, simplify, I, log, cos, sin, tan, acos, asin, atan, pi, sqrt
+        x, y = symbols("x y")
+        query = sub(r"(\d)\(", "\\1*(", query)
+        query = sub("(\d)(x)|(\d)(y)", "\\1*\\2", query)
+        query = sub("(x)(\d)|(y)(\d)", "\\1**\\2", query)
+        query = sub(r"(?<![a-z])i(?![a-z])", "I", query)
+        res = str(eval(query, {"__builtins__": None, "series": series, "expand_trig": expand_trig, "oo": oo, "exp": exp, "limit": limit, "x": x, "y": y, "I": I, "factor": factor, "expand": expand, "integrate": integrate, "diff": diff, "solve": solve, "simplify": simplify, "log": log, "cos": cos, "sin": sin, "tan": tan, "acos": acos, "asin": asin, "atan": atan, "pi": pi, "sqrt": sqrt}))
+        return self.response(self.for_display(res), self.for_display(query))
+
     def query(self, entry: str = ''):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             if not entry or len(entry) > 200: return
             # noinspection PyBroadException
             try:
-                # Special queries
+                # Special entries (hash, UUID, base conversion)
                 if entry in ("uuid", "ulid", "cuid", "sulid"): return self.response(FabCalc.uuid(entry), f"{entry.upper()}: press Enter to copy to clipboard")
                 if self.is_hash(entry): return self.response(self.hashes(entry), f"{entry}: press Enter to copy to clipboard") 
                 res = self.basecalc(entry)
                 if res: return res
                 query, datecnt = self.replace_with_seconds(entry)
-
+                
                 # Valid formula
                 if not fullmatch(r'[xyi\d\s+*^()!.,/-]+', sub(funcs_pattern, '', query)): return
                 query = query.strip().replace("^", "**")
                 if "(" in query and ")" not in query: query += ")"
 
                 # Symbolic formula
-                if "x" in query or "y" in query or "i" in query:
-                    from sympy import series, expand_trig, oo, exp, limit, symbols, factor, expand, integrate, diff, solve, simplify, I, log, cos, sin, tan, acos, asin, atan, pi, sqrt
-                    x, y = symbols("x y")
-                    query = sub(r"(\d)\(", "\\1*(", query)
-                    query = sub("(\d)(x)|(\d)(y)", "\\1*\\2", query)
-                    query = sub("(x)(\d)|(y)(\d)", "\\1**\\2", query)
-                    query = sub(r"(?<![a-z])i(?![a-z])", "I", query)
-                    res = str(eval(query, {"__builtins__": None, "series": series, "expand_trig": expand_trig, "oo": oo, "exp": exp, "limit": limit,  "x": x, "y": y, "I": I, "factor": factor, "expand": expand, "integrate": integrate, "diff": diff, "solve": solve, "simplify": simplify, "log": log, "cos": cos, "sin": sin, "tan": tan, "acos": acos, "asin": asin, "atan": atan, "pi": pi, "sqrt": sqrt}))
-                    return self.response(self.for_display(res), self.for_display(query))
+                if "x" in query or "y" in query or "i" in query: return self.symbolic_eval(query)
 
                 # Algebric formula
                 query = sub("(\d+)!", "factorial(\\1)", query)
@@ -264,19 +278,15 @@ class FabCalc(FlowLauncher):
                 raw = eval(query, {"__builtins__": None}, safe)
                 res = self.fmtnum(raw)
 
+                # Dates and fractions
                 if datecnt: return self.response(self.format_date(entry, raw), entry)
-                if "/" in query:
-                    from fractions import Fraction
-                    safe["Fraction"] = Fraction
-                    query, cnt = subn("(\d+)\s*/\s*(\d+)", "Fraction(\\1,\\2)", query)
-                    res2 = str(eval(query, {"__builtins__": None}, safe) if cnt else "")
-                    if "/" in res2: res = f"{res2}  =  {res}"
+                if "/" in query: res = self.fraction_result(query, res, safe)
 
                 return self.response(res, self.for_display(entry))
 
             except Exception as e:
+                return self.response(str(e), entry + " >> " + query)
                 pass
-                # return self.response(str(e), entry + " >> " + query)
 
 
 if __name__ == "__main__":
