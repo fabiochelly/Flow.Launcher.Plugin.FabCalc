@@ -9,11 +9,12 @@ path.append(join(basedir, "lib"))
 # noinspection PyUnresolvedReferences
 from flowlauncher import FlowLauncher
 
+def prime(val): return FabCalc.main_isprime(int(val))
 def factor(val): return FabCalc.main_intfactor(int(val), True)
 def factors(val): return FabCalc.main_intfactor(int(val), False)
 
 icon_path = join(basedir, "fabcalc.png")
-funcs = ["uuid", "now", "factors", "series", "expand_trig", "exp", "limit", "oo", "simplify", "integrate", "diff", "expand", "solve", "Fraction", "factor", "pi", "cos", "sin", "tan", "abs", "log", "log10", "log2", "exp", "sqrt", "acos", "asin", "atan", "atan2", "ceil", "floor", "degrees", "radians", "trunc", "round", "factorial", "gcd", "pow"]
+funcs = ["prime", "uuid", "now", "factors", "series", "expand_trig", "exp", "limit", "oo", "simplify", "integrate", "diff", "expand", "solve", "Fraction", "factor", "pi", "cos", "sin", "tan", "abs", "log", "log10", "log2", "exp", "sqrt", "acos", "asin", "atan", "atan2", "ceil", "floor", "degrees", "radians", "trunc", "round", "factorial", "gcd", "pow"]
 funcs_pattern = r'\b(?:' + '|'.join(funcs) + r')\b'
 
 
@@ -113,6 +114,11 @@ class FabCalc(FlowLauncher):
                 res.append(FabCalc.fmtint(i))
                 n //= i
         return " · ".join(res)
+
+    @staticmethod
+    def main_isprime(n):
+        res = FabCalc.main_intfactor(n, True)
+        return "False" if "·" in res else "True"
 
     @staticmethod
     def main_intfactor(n, multiples):
@@ -307,9 +313,14 @@ class FabCalc(FlowLauncher):
     
     @staticmethod
     def color(entry):
-        clr = entry[1:].lower()
-        if len(clr) == 3: clr = clr[0] * 2 + clr[1] * 2 + clr[2] * 2
-        rgb = int(clr[:2], 16), int(clr[2:4], 16), int(clr[4:6], 16)
+        if "," in entry:
+            rgb = tuple([int(el) for el in entry.split(",")])
+            clr = "".join([f"{el:02X}" for el in rgb])
+        else:
+            clr = entry[1:].lower()
+            if len(clr) == 3: clr = clr[0] * 2 + clr[1] * 2 + clr[2] * 2
+            rgb = int(clr[:2], 16), int(clr[2:4], 16), int(clr[4:6], 16)
+
         hsl = FabCalc.rgb_to_hsl(*rgb)
         hue, sat, lig = f"{hsl[0] * 360:.0f}°", f"{hsl[1] * 100:.0f}%", f"{hsl[2] * 100:.0f}%"
 
@@ -325,7 +336,7 @@ class FabCalc(FlowLauncher):
 
         ico = join(tmp, f"fc-{basename(ico)}.bmp")
         open(ico, "wb").write(FabCalc.create_bmp(rgb))
-        return [FabCalc.res(f"{name}:  RGB {rgb}   HSL ({hue}, {sat}, {lig})", f"RGB for {entry}", ico)]
+        return [FabCalc.res(f"{name}:   #{clr}    RGB{rgb}    HSL({hue}, {sat}, {lig})", f"Color details for {entry}", ico)]
 
 
     def query(self, entry: str = ''):
@@ -338,22 +349,24 @@ class FabCalc(FlowLauncher):
                 if entry == "uuid": return FabCalc.uuids()
                 if entry == "myip": return self.ip()
                 if len(entry) in (4,7) and entry.startswith("#") and match(r"^#([A-Fa-f\d]{3}|[A-Fa-f\d]{6})$", entry): return self.color(entry)
+                if entry.count(",") == 2 and match("^\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}$", entry): return self.color(entry)
                 if self.is_hash(entry): return [self.res(self.hashes(entry), f"{entry}: press Enter to copy to clipboard")] 
                 res = self.basecalc(entry)
                 if res: return res
                 query, datecnt = self.replace_with_seconds(entry)
-                
+
                 # Valid formula
                 if not fullmatch(r'[xyi\d\s+*^()!.,/-]+', sub(funcs_pattern, '', query)): return
                 query = query.strip().replace("^", "**")
                 if "(" in query and ")" not in query: query += ")"
 
                 # Symbolic formula
-                if "x" in query or "y" in query or "i" in query: return self.symbolic_eval(query)
+                if "x" in query or "y" in query or ("i" in query and not "prime(" in query): return self.symbolic_eval(query)
 
                 # Algebric formula
                 query = sub("(\d+)!", "factorial(\\1)", query)
                 safe = {fn: globals()[fn] for fn in funcs if fn in globals()}
+                open(join(basedir, "log.txt"), "w").write(f"{entry}\n{str(safe)}\n\n")
                 raw = eval(query, {"__builtins__": None}, safe)
                 res = self.fmtnum(raw)
 
@@ -364,7 +377,7 @@ class FabCalc(FlowLauncher):
                 return [self.res(res, self.for_display(entry))]
 
             except Exception as e:
-                # return self.res(str(e), entry)
+                # return [self.res(str(e), entry)]
                 pass
 
 
