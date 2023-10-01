@@ -1,4 +1,4 @@
-from os.path import dirname, abspath, join
+from os.path import dirname, abspath, join, basename, getmtime
 from sys import path
 from math import pi, cos, sin, tan, log, log10, log2, exp, sqrt, acos, asin, atan, atan2, ceil, floor, degrees, radians, trunc, factorial, gcd, pow
 import warnings
@@ -21,12 +21,9 @@ class FabCalc(FlowLauncher):
 
     @staticmethod
     def create_bmp(rgb=(255, 255, 255)):
-        width, height = 4, 4
-        file_size = 54 + width * height * 3  # taille de l'en-tête + taille des données
-        bf_header = b'BM' + file_size.to_bytes(4, 'little') + b'\x00\x00\x00\x00\x36\x00\x00\x00'
-        bi_header = (b'\x28\x00\x00\x00' + width.to_bytes(4, 'little') + (-height).to_bytes(4, 'little', signed=True) + b'\x01\x00\x18\x00\x00\x00\x00\x00\x00\x00\x00\x00\x13\x0B\x00\x00\x13\x0B\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00')
-        return bf_header + bi_header + bytes(rgb[::-1]) * width * height
-
+        header = b"BMF\x00\x00\x00\x00\x00\x00\x00\x36\x00\x00\x00\x28\x00\x00\x00\x02\x00\x00\x00\x02\x00\x00\x00\x01\x00\x18\x00\x00\x00\x00\x00\x10\x00\x00\x00\x13\x0B\x00\x00\x13\x0B\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+        pixel_row = bytes(rgb[::-1]) * 2 + b'\x00\x00'
+        return header + pixel_row * 2
 
     @staticmethod
     def format_date(expr, result):
@@ -147,7 +144,7 @@ class FabCalc(FlowLauncher):
         return str(num) if num < 1000 else f"{num:_}".replace("_", " ")
 
     @staticmethod
-    def res(title: str, subtitle: str, icon=False):
+    def res(title: str, subtitle: str, icon=""):
         return {
             'Title': title,
             'SubTitle': subtitle,
@@ -265,16 +262,6 @@ class FabCalc(FlowLauncher):
         ]
 
     @staticmethod
-    def delete_old_bmp():
-        # Delete bmp files older than 5 minutes
-        from os import listdir, remove
-        from os.path import getmtime
-        from time import time
-        t = time() - 60
-        for f in listdir(basedir):
-            if f.endswith(".bmp") and getmtime(join(basedir, f)) < t: remove(join(basedir, f))
-
-    @staticmethod
     def rgb_to_hsl(r, g, b):
         r, g, b = r / 255.0, g / 255.0, b / 255.0
         maxi, mini = max(r, g, b), min(r, g, b)
@@ -299,26 +286,25 @@ class FabCalc(FlowLauncher):
             elif l < 0.8: return "gray"
             elif l < 0.95: return "light gray"
             else: return "white"
-    
-        if h < 15 and l < 0.3: return "maroon"
-        if h <= 8 or h >= 343: hue = "red"
-        elif 14 <= h < 25 and l < 0.25: hue = "brown"
-        elif 14 <= h < 45: hue = "orange"
-        elif 45 <= h < 75: hue = "yellow"
-        elif 75 <= h < 170: hue = "green"
-        elif 170 <= h < 260: hue = "blue"
-        elif 260 <= h < 285: hue = "purple"
-        else: hue = "pink"
-    
-        # Intensity
-        if l < 0.2: intensity = "very dark"
-        elif l < 0.35: intensity = "dark"
-        elif l < 0.45: intensity = "medium"
-        elif l < 0.8: intensity = "light"
-        else: intensity = "very light"
-    
-        return f"{hue} {intensity}"
 
+        colors = {
+            10: {40: "brown", 75: "khaki", 155: "green", 250: "blue", 360: "red"},
+            20: {40: "brown", 70: "khaki", 155: "green", 250: "blue", 290: "purple", 330: "magenta", 360: "red"},
+            30: {15: "maroon", 50: "brown", 150: "green", 250: "blue", 280: "purple", 340: "pink", 360: "red"},
+            40: {10: "red", 30: "orange", 60: "gold", 150: "green", 250: "blue", 280: "purple", 340: "pink", 360: "red"},
+            50: {5: "red", 40: "orange", 60: "gold", 70: "yellow", 150: "green", 250: "blue", 280: "purple", 340: "pink", 360: "red"},
+            60: {5: "red", 40: "orange", 60: "gold", 70: "yellow", 150: "green", 250: "blue", 280: "purple", 340: "pink", 360: "red"},
+            70: {5: "red", 40: "orange", 75: "yellow", 150: "green", 250: "blue", 280: "purple", 340: "pink", 360: "red"},
+        }
+        
+        hue = ""
+        row = colors[ceil(l * 10) * 10] if l < 0.7 else colors[70]
+        for threshold, color in row.items():
+            if h <= threshold: hue = color; break
+        intensity = " dark" if l < 0.35 else ("" if l < 0.6 else " light")
+    
+        return f"{hue}{intensity}"
+    
     @staticmethod
     def color(entry):
         clr = entry[1:].lower()
@@ -327,15 +313,20 @@ class FabCalc(FlowLauncher):
         hsl = FabCalc.rgb_to_hsl(*rgb)
         hue, sat, lig = f"{hsl[0] * 360:.0f}°", f"{hsl[1] * 100:.0f}%", f"{hsl[2] * 100:.0f}%"
 
-        names = {"black": "000000", "0000ff": "blue", "ff00ff": "fuchsia", "008000": "green", "808080": "gray", "00ff00": "lime", "800000": "maroon", "000080": "navy", "808000": "olive", "800080": "purple", "ff0000": "red", "c0c0c0": "silver", "008080": "teal", "ffffff": "white", "ffff00": "yellow", "f0f8ff": "aliceblue", "faebd7": "antiquewhite", "00ffff": "aqua", "7fffd4": "aquamarine", "f0ffff": "azure", "f5f5dc": "beige", "ffe4c4": "bisque", "000000": "black", "ffebcd": "blanchedalmond", "8a2be2": "blueviolet", "a52a2a": "brown", "deb887": "burlywood", "5f9ea0": "cadetblue", "7fff00": "chartreuse", "d2691e": "chocolate", "ff7f50": "coral", "6495ed": "cornflowerblue", "fff8dc": "cornsilk", "dc143c": "crimson", "00008b": "darkblue", "008b8b": "darkcyan", "b8860b": "darkgoldenrod", "a9a9a9": "darkgray", "006400": "darkgreen", "bdb76b": "darkkhaki", "8b008b": "darkmagenta", "556b2f": "darkolivegreen", "ff8c00": "darkorange", "9932cc": "darkorchid", "8b0000": "darkred", "e9967a": "darksalmon", "8fbc8f": "darkseagreen", "483d8b": "darkslateblue", "2f4f4f": "darkslategray", "00ced1": "darkturquoise", "9400d3": "darkviolet", "ff1493": "deeppink", "00bfff": "deepskyblue", "696969": "dimgray", "1e90ff": "dodgerblue", "b22222": "firebrick", "fffaf0": "floralwhite", "228b22": "forestgreen", "dcdcdc": "gainsboro", "f8f8ff": "ghostwhite", "ffd700": "gold", "daa520": "goldenrod", "adff2f": "greenyellow", "f0fff0": "honeydew", "ff69b4": "hotpink", "cd5c5c": "indianred", "4b0082": "indigo", "fffff0": "ivory", "f0e68c": "khaki", "e6e6fa": "lavender", "fff0f5": "lavenderblush", "7cfc00": "lawngreen", "fffacd": "lemonchiffon", "add8e6": "lightblue", "f08080": "lightcoral", "e0ffff": "lightcyan", "fafad2": "lightgoldenrodyellow", "d3d3d3": "lightgray", "90ee90": "lightgreen", "ffb6c1": "lightpink", "ffa07a": "lightsalmon", "20b2aa": "lightseagreen", "87cefa": "lightskyblue", "778899": "lightslategray", "b0c4de": "lightsteelblue", "ffffe0": "lightyellow", "32cd32": "limegreen", "faf0e6": "linen", "66cdaa": "mediumaquamarine", "0000cd": "mediumblue", "ba55d3": "mediumorchid", "9370db": "mediumpurple", "3cb371": "mediumseagreen", "7b68ee": "mediumslateblue", "00fa9a": "mediumspringgreen", "48d1cc": "mediumturquoise", "c71585": "mediumvioletred", "191970": "midnightblue", "f5fffa": "mintcream", "ffe4e1": "mistyrose", "ffe4b5": "moccasin", "ffdead": "navajowhite", "fdf5e6": "oldlace", "6b8e23": "olivedrab", "ffa500": "orange", "ff4500": "orangered", "da70d6": "orchid", "eee8aa": "palegoldenrod", "98fb98": "palegreen", "afeeee": "paleturquoise", "db7093": "palevioletred", "ffefd5": "papayawhip", "ffdab9": "peachpuff", "cd853f": "peru", "ffc0cb": "pink", "dda0dd": "plum", "b0e0e6": "powderblue", "bc8f8f": "rosybrown", "4169e1": "royalblue", "8b4513": "saddlebrown", "fa8072": "salmon", "f4a460": "sandybrown", "2e8b57": "seagreen", "fff5ee": "seashell", "a0522d": "sienna", "87ceeb": "skyblue", "6a5acd": "slateblue", "708090": "slategray", "fffafa": "snow", "00ff7f": "springgreen", "4682b4": "steelblue", "d2b48c": "tan", "d8bfd8": "thistle", "ff6347": "tomato", "40e0d0": "turquoise", "ee82ee": "violet", "f5deb3": "wheat", "f5f5f5": "whitesmoke", "9acd32": "yellowgreen"}
-        name = names.get(clr, FabCalc.determine_color_name(*hsl)) + "   "
-        
-        FabCalc.delete_old_bmp()
-        from uuid import uuid4
-        path = join(basedir, f"{uuid4()}.bmp")
-        open(path, "wb").write(FabCalc.create_bmp(rgb))
-        return [FabCalc.res(f"{name}RGB {rgb}   HSL ({hue}, {sat}, {lig})", f"RGB for {entry}", path)]
-        
+        names = {"0000ff": "blue", "ff00ff": "fuchsia", "008000": "green", "808080": "gray", "00ff00": "lime", "800000": "maroon", "000080": "navy", "808000": "olive", "800080": "purple", "ff0000": "red", "c0c0c0": "silver", "008080": "teal", "ffffff": "white", "ffff00": "yellow", "f0f8ff": "aliceblue", "faebd7": "antiquewhite", "00ffff": "aqua", "7fffd4": "aquamarine", "f0ffff": "azure", "f5f5dc": "beige", "ffe4c4": "bisque", "000000": "black", "ffebcd": "blanchedalmond", "8a2be2": "blueviolet", "a52a2a": "brown", "deb887": "burlywood", "5f9ea0": "cadetblue", "7fff00": "chartreuse", "d2691e": "chocolate", "ff7f50": "coral", "6495ed": "cornflowerblue", "fff8dc": "cornsilk", "dc143c": "crimson", "00008b": "darkblue", "008b8b": "darkcyan", "b8860b": "darkgoldenrod", "a9a9a9": "darkgray", "006400": "darkgreen", "bdb76b": "darkkhaki", "8b008b": "darkmagenta", "556b2f": "darkolivegreen", "ff8c00": "darkorange", "9932cc": "darkorchid", "8b0000": "darkred", "e9967a": "darksalmon", "8fbc8f": "darkseagreen", "483d8b": "darkslateblue", "2f4f4f": "darkslategray", "00ced1": "darkturquoise", "9400d3": "darkviolet", "ff1493": "deeppink", "00bfff": "deepskyblue", "696969": "dimgray", "1e90ff": "dodgerblue", "b22222": "firebrick", "fffaf0": "floralwhite", "228b22": "forestgreen", "dcdcdc": "gainsboro", "f8f8ff": "ghostwhite", "ffd700": "gold", "daa520": "goldenrod", "adff2f": "greenyellow", "f0fff0": "honeydew", "ff69b4": "hotpink", "cd5c5c": "indianred", "4b0082": "indigo", "fffff0": "ivory", "f0e68c": "khaki", "e6e6fa": "lavender", "fff0f5": "lavenderblush", "7cfc00": "lawngreen", "fffacd": "lemonchiffon", "add8e6": "lightblue", "f08080": "lightcoral", "e0ffff": "lightcyan", "fafad2": "lightgoldenrodyellow", "d3d3d3": "lightgray", "90ee90": "lightgreen", "ffb6c1": "lightpink", "ffa07a": "lightsalmon", "20b2aa": "lightseagreen", "87cefa": "lightskyblue", "778899": "lightslategray", "b0c4de": "lightsteelblue", "ffffe0": "lightyellow", "32cd32": "limegreen", "faf0e6": "linen", "66cdaa": "mediumaquamarine", "0000cd": "mediumblue", "ba55d3": "mediumorchid", "9370db": "mediumpurple", "3cb371": "mediumseagreen", "7b68ee": "mediumslateblue", "00fa9a": "mediumspringgreen", "48d1cc": "mediumturquoise", "c71585": "mediumvioletred", "191970": "midnightblue", "f5fffa": "mintcream", "ffe4e1": "mistyrose", "ffe4b5": "moccasin", "ffdead": "navajowhite", "fdf5e6": "oldlace", "6b8e23": "olivedrab", "ffa500": "orange", "ff4500": "orangered", "da70d6": "orchid", "eee8aa": "palegoldenrod", "98fb98": "palegreen", "afeeee": "paleturquoise", "db7093": "palevioletred", "ffefd5": "papayawhip", "ffdab9": "peachpuff", "cd853f": "peru", "ffc0cb": "pink", "dda0dd": "plum", "b0e0e6": "powderblue", "bc8f8f": "rosybrown", "4169e1": "royalblue", "8b4513": "saddlebrown", "fa8072": "salmon", "f4a460": "sandybrown", "2e8b57": "seagreen", "fff5ee": "seashell", "a0522d": "sienna", "87ceeb": "skyblue", "6a5acd": "slateblue", "708090": "slategray", "fffafa": "snow", "00ff7f": "springgreen", "4682b4": "steelblue", "d2b48c": "tan", "d8bfd8": "thistle", "ff6347": "tomato", "40e0d0": "turquoise", "ee82ee": "violet", "f5deb3": "wheat", "f5f5f5": "whitesmoke", "9acd32": "yellowgreen"}
+        name = names.get(clr, FabCalc.determine_color_name(*hsl))
+
+        from tempfile import NamedTemporaryFile
+        from os import listdir, remove
+        ico = NamedTemporaryFile().name
+        tmp = dirname(ico)
+        for f in listdir(tmp):
+            if f.startswith("fc-") and f.endswith(".bmp"): remove(join(tmp, f))
+
+        ico = join(tmp, f"fc-{basename(ico)}.bmp")
+        open(ico, "wb").write(FabCalc.create_bmp(rgb))
+        return [FabCalc.res(f"{name}:  RGB {rgb}   HSL ({hue}, {sat}, {lig})", f"RGB for {entry}", ico)]
+
 
     def query(self, entry: str = ''):
         with warnings.catch_warnings():
