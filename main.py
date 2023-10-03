@@ -258,10 +258,16 @@ class FabCalc(FlowLauncher):
     @staticmethod
     def ip():
         from urllib.request import urlopen
+        from urllib.error import URLError
         from socket import gethostname, gethostbyname
         hostname = gethostname()
         local_ip = gethostbyname(hostname)
-        exter_ip =  urlopen('https://api.ipify.org').read().decode()
+        try:
+            with urlopen('https://api.ipify.org', timeout=4) as response:
+                exter_ip = response.read().decode()
+        except URLError:
+            exter_ip = "Error: no internet connection"
+
         return [
             FabCalc.res(exter_ip, "External IP : press Enter to copy to clipboard"),
             FabCalc.res(local_ip, f"Local IP ({hostname}) : press Enter to copy to clipboard"),
