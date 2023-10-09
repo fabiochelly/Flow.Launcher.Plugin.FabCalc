@@ -1,4 +1,4 @@
-## This plugin for FlowLauncher is an advanced calculator (algebric and symbolic calculations) using Python eval
+## This plugin for FlowLauncher is an advanced calculator (algebraic and symbolic calculations) using Python eval
 
 After any calculation, just press enter to copy the result to the clipboard
 
