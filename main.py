@@ -249,8 +249,8 @@ class FabCalc(FlowLauncher):
         from sympy import series, expand_trig, oo, exp, limit, symbols, factor, expand, integrate, diff, solve, simplify, I, log, cos, sin, tan, acos, asin, atan, pi, sqrt
         x, y = symbols("x y")
         query = sub(r"(\d)\(", "\\1*(", query)
-        query = sub("(\d)(x)|(\d)(y)", "\\1*\\2", query)
-        query = sub("(x)(\d)|(y)(\d)", "\\1**\\2", query)
+        query = sub(r"(\d)(x)|(\d)(y)", "\\1*\\2", query)
+        query = sub(r"(x)(\d)|(y)(\d)", "\\1**\\2", query)
         query = sub(r"(?<![a-z])i(?![a-z])", "I", query)
         res = str(eval(query, {"__builtins__": None, "series": series, "expand_trig": expand_trig, "oo": oo, "exp": exp, "limit": limit, "x": x, "y": y, "I": I, "factor": factor, "expand": expand, "integrate": integrate, "diff": diff, "solve": solve, "simplify": simplify, "log": log, "cos": cos, "sin": sin, "tan": tan, "acos": acos, "asin": asin, "atan": atan, "pi": pi, "sqrt": sqrt}))
         return [self.res(self.for_display(res), self.for_display(query))]
@@ -355,7 +355,7 @@ class FabCalc(FlowLauncher):
                 if entry == "uuid": return FabCalc.uuids()
                 if entry == "myip": return self.ip()
                 if len(entry) in (4,7) and entry.startswith("#") and match(r"^#([A-Fa-f\d]{3}|[A-Fa-f\d]{6})$", entry): return self.color(entry)
-                if entry.count(",") == 2 and match("^\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}$", entry): return self.color(entry)
+                if entry.count(",") == 2 and match(r"^\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}$", entry): return self.color(entry)
                 if self.is_hash(entry): return [self.res(self.hashes(entry), f"{entry}: press Enter to copy to clipboard")] 
                 res = self.basecalc(entry)
                 if res: return res
@@ -370,7 +370,7 @@ class FabCalc(FlowLauncher):
                 if "x" in query or "y" in query or ("i" in query and not "prime(" in query): return self.symbolic_eval(query)
 
                 # Algebric formula
-                query = sub("(\d+)!", "factorial(\\1)", query)
+                query = sub(r"(\d+)!", "factorial(\\1)", query)
                 safe = {fn: globals()[fn] for fn in funcs if fn in globals()}
                 open(join(basedir, "log.txt"), "w").write(f"{entry}\n{str(safe)}\n\n")
                 raw = eval(query, {"__builtins__": None}, safe)
