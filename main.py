@@ -245,6 +245,18 @@ class FabCalc(FlowLauncher):
             pass
         return res
 
+    @staticmethod
+    def engineer_result(res):
+        try:
+            res2 = res.replace(" ", "")
+            mantissa = len(res2) - 1
+            fval = int(res2) / 10 ** mantissa
+            res2 = f"{fval:.2f}".replace("_", " ").rstrip("0").rstrip(".")
+            return f"{res2} · 10^{mantissa} = {res}"
+        except:
+            pass
+        return res
+
     def symbolic_eval(self, query):
         from sympy import series, expand_trig, oo, exp, limit, symbols, factor, expand, integrate, diff, solve, simplify, I, log, cos, sin, tan, acos, asin, atan, pi, sqrt
         x, y = symbols("x y")
@@ -345,6 +357,10 @@ class FabCalc(FlowLauncher):
         return [FabCalc.res(f"{name}:   #{clr}    RGB{rgb}    HSL({hue}, {sat}, {lig})", f"Color details for {entry}", ico)]
 
 
+    @staticmethod
+    def flog(val):
+        open(join(basedir, "log.txt"), "a+").write(f"{val}\n")
+
     def query(self, entry: str = ''):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
@@ -372,19 +388,24 @@ class FabCalc(FlowLauncher):
                 # Algebric formula
                 query = sub(r"(\d+)!", "factorial(\\1)", query)
                 safe = {fn: globals()[fn] for fn in funcs if fn in globals()}
-                open(join(basedir, "log.txt"), "w").write(f"{entry}\n{str(safe)}\n\n")
                 raw = eval(query, {"__builtins__": None}, safe)
                 res = self.fmtnum(raw)
 
                 # Dates and fractions
                 if datecnt: return [self.res(self.format_date(entry, raw), entry)]
                 if "/" in query: res = self.fraction_result(query, res, safe)
+                if self.bigint(res): res = self.engineer_result(res) 
 
                 return [self.res(res, self.for_display(entry))]
 
             except Exception as e:
                 # return [self.res(str(e), entry)]
                 pass
+
+    @staticmethod
+    def bigint(val):
+        s = str(val).replace(" ", "")
+        return len(s) > 10 and s.isdigit()
 
 
 if __name__ == "__main__":
