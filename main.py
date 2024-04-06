@@ -9,10 +9,6 @@ path.append(join(basedir, "lib"))
 # noinspection PyUnresolvedReferences
 from flowlauncher import FlowLauncher
 
-def prime(val): return FabCalc.main_isprime(int(val))
-def factor(val): return FabCalc.main_intfactor(int(val), True)
-def factors(val): return FabCalc.main_intfactor(int(val), False)
-
 icon_path = join(basedir, "fabcalc.png")
 funcs = ["prime", "uuid", "now", "factors", "series", "expand_trig", "exp", "limit", "oo", "simplify", "integrate", "diff", "expand", "solve", "Fraction", "factor", "pi", "cos", "sin", "tan", "abs", "log", "log10", "log2", "exp", "sqrt", "acos", "asin", "atan", "atan2", "ceil", "floor", "degrees", "radians", "trunc", "round", "factorial", "gcd", "pow"]
 funcs_pattern = r'\b(?:' + '|'.join(funcs) + r')\b'
@@ -29,7 +25,7 @@ class FabCalc(FlowLauncher):
     @staticmethod
     def format_date(expr, result):
         dates_in_expr = len(findall(r'\d{4}-\d{2}-\d{2}|now', expr))
-    
+
         if dates_in_expr == 1:
             # Format as date
             from datetime import datetime, timedelta
@@ -52,10 +48,10 @@ class FabCalc(FlowLauncher):
         from datetime import datetime
         # Regex to identify dates and times
         pattern = r'(?:(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})(?:\s(?P<hour>\d{2}):(?P<minute>\d{2})(?::(?P<second>\d{2}))?)?)|(?P<only_hour>\d{2}):(?P<only_minute>\d{2})(?::(?P<only_second>\d{2}))?'
-    
+
         def compute_value(match):
             details = match.groupdict()
-    
+
             if details['year']:
                 # A date has been found
                 year = int(details['year'])
@@ -64,21 +60,21 @@ class FabCalc(FlowLauncher):
                 hour = int(details['hour']) if details['hour'] else 0
                 minute = int(details['minute']) if details['minute'] else 0
                 second = int(details['second']) if details['second'] else 0
-    
+
                 base_datetime = datetime(1970, 1, 1)
                 target_datetime = datetime(year, month, day, hour, minute, second)
                 difference = target_datetime - base_datetime
-    
+
                 return str(int(difference.total_seconds()))
-    
+
             elif details['only_hour']:
                 # Only time has been found
                 hour = int(details['only_hour'])
                 minute = int(details['only_minute']) if details['only_minute'] else 0
                 second = int(details['only_second']) if details['only_second'] else 0
-    
+
                 return str(hour * 3600 + minute * 60 + second)
-    
+
         # Replaces all occurrences of dates and times in the string with their equivalent in seconds
         res, cnt = subn(pattern, compute_value, expr)
         if cnt > 0 or "now" in expr:
@@ -102,7 +98,7 @@ class FabCalc(FlowLauncher):
             intval, value = divmod(intval, base)
             res.append(int2sym[value])
         return ''.join(reversed(res))
-    
+
     @staticmethod
     def sympy_factors(n, multiples):
         from sympy import primefactors
@@ -266,7 +262,7 @@ class FabCalc(FlowLauncher):
         query = sub(r"(?<![a-z])i(?![a-z])", "I", query)
         res = str(eval(query, {"__builtins__": None, "series": series, "expand_trig": expand_trig, "oo": oo, "exp": exp, "limit": limit, "x": x, "y": y, "I": I, "factor": factor, "expand": expand, "integrate": integrate, "diff": diff, "solve": solve, "simplify": simplify, "log": log, "cos": cos, "sin": sin, "tan": tan, "acos": acos, "asin": asin, "atan": atan, "pi": pi, "sqrt": sqrt}))
         return [self.res(self.for_display(res), self.for_display(query))]
-    
+
     @staticmethod
     def ip():
         from urllib.request import urlopen
@@ -290,7 +286,7 @@ class FabCalc(FlowLauncher):
         r, g, b = r / 255.0, g / 255.0, b / 255.0
         maxi, mini = max(r, g, b), min(r, g, b)
         l = (maxi + mini) / 2.0
-    
+
         if maxi == mini: h, s = 0, 0
         else:
             d = maxi - mini
@@ -300,7 +296,7 @@ class FabCalc(FlowLauncher):
             else: h = (r - g) / d + 4
             h /= 6.0
         return h, s, l
-    
+
     @staticmethod
     def determine_color_name(h, s, l):
         h *= 360
@@ -320,15 +316,15 @@ class FabCalc(FlowLauncher):
             60: {5: "red", 40: "orange", 60: "gold", 70: "yellow", 150: "green", 250: "blue", 280: "purple", 340: "pink", 360: "red"},
             70: {5: "red", 40: "orange", 75: "yellow", 150: "green", 250: "blue", 280: "purple", 340: "pink", 360: "red"},
         }
-        
+
         hue = ""
         row = colors[ceil(l * 10) * 10] if l < 0.7 else colors[70]
         for threshold, color in row.items():
             if h <= threshold: hue = color; break
         intensity = " dark" if l < 0.35 else ("" if l < 0.6 else " light")
-    
+
         return f"{hue}{intensity}"
-    
+
     @staticmethod
     def color(entry):
         if "," in entry:
@@ -372,14 +368,19 @@ class FabCalc(FlowLauncher):
                 if entry == "myip": return self.ip()
                 if len(entry) in (4,7) and entry.startswith("#") and match(r"^#([A-Fa-f\d]{3}|[A-Fa-f\d]{6})$", entry): return self.color(entry)
                 if entry.count(",") == 2 and match(r"^\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}$", entry): return self.color(entry)
-                if self.is_hash(entry): return [self.res(self.hashes(entry), f"{entry}: press Enter to copy to clipboard")] 
+                if self.is_hash(entry): return [self.res(self.hashes(entry), f"{entry}: press Enter to copy to clipboard")]
                 res = self.basecalc(entry)
                 if res: return res
                 query, datecnt = self.replace_with_seconds(entry)
 
                 # Valid formula
-                if not fullmatch(r'[xyi\d\s+*^()!.,/-]+', sub(funcs_pattern, '', query)): return
+                if not fullmatch(r'[xyi\d\s+*^()!.,/%-]+', sub(funcs_pattern, '', query)): return
                 query = query.strip().replace("^", "**")
+                
+                # Percentages
+                query = sub(r"(\d+(?:\.\d+)?)\s*%", r"(\1/100)", query)
+                query = query.replace('%', '/100.0')
+                
                 if "(" in query and ")" not in query: query += ")"
 
                 # Symbolic formula
@@ -407,6 +408,10 @@ class FabCalc(FlowLauncher):
         s = str(val).replace(" ", "")
         return len(s) > 10 and s.isdigit()
 
+
+def prime(val): return FabCalc.main_isprime(int(val))
+def factor(val): return FabCalc.main_intfactor(int(val), True)
+def factors(val): return FabCalc.main_intfactor(int(val), False)
 
 if __name__ == "__main__":
     FabCalc()
