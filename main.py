@@ -407,6 +407,17 @@ class FabCalc(FlowLauncher):
         res = self.searches().get(key, {})
         if not res: return False
         query = entry[p + 1:]
+        
+        # We check if there are patterns to match
+        if "patterns" in res:
+            for rx, url in res["patterns"]:
+                groups = findall(rx, query)
+                if not groups: continue
+                for i, group in enumerate(groups[0]):
+                    url = url.replace(f"${i + 1}", quote_plus(group))
+                vals = ", ".join([g for g in groups[0]])
+                return [self.res(res["name"], f"Search for: {vals}", ws_icon_path, url)]
+        
         # url encode the query with urllib.parse.quote_plus
         url = res["search"].replace("{q}", quote_plus(query))
         return [self.res(res["name"], f"Search for: {query}", ws_icon_path, url)]

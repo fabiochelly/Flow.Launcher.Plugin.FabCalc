@@ -4,14 +4,18 @@
         "search": "https://www.whois.com/whois/{q}",
         "link": "https://www.whois.com/whois/"
     },
-    "fres": {
-        "name": "Google Translate fr-es",
-        "search": "https://translate.google.fr/?sl=fr&tl=es&text={q}&op=translate",
+    "tr": {
+        "name": "Google Translate",
+        "patterns": [
+            ["^([a-z]{2}) ([a-z]{2}) (.*)$", "https://translate.google.fr/?sl=$1&tl=$2&text=$3&op=translate"],
+            ["^([a-z]{2}) (.*)$", "https://translate.google.fr/?sl=auto&tl=$1&text=$2&op=translate"]
+        ],
+        "search": "https://translate.google.fr/?sl=auto&tl=fr&text={q}&op=translate",
         "link": "https://translate.google.fr/"
     },
-    "esfr": {
-        "name": "Google Translate es-fr",
-        "search": "https://translate.google.fr/?sl=es&tl=fr&text={q}&op=translate",
-        "link": "https://translate.google.fr/"
+    "dic": {
+        "name": "Oxford Dictionary",
+        "search": "https://www.oed.com/search/dictionary/?scope=Entries&q={q}",
+        "link": "https://www.oed.com/?tl=true"
     }
 }

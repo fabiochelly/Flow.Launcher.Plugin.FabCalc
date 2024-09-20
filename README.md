@@ -111,7 +111,7 @@ You can calculate the delta between dates or add or substract hours, days, week 
 
 Enter this code to get your local and external IP address:
 
-> `myip`
+> `ip`
 
 
 ### Colors
@@ -124,4 +124,12 @@ Enter a color code (hex or RGB) to display the right color with all informations
 
 ### Fast web searches
 
-Search the web using custom keywords. See websearches.json for examples.
+Search the web using custom keywords (edit the file websearches.json to add your own websites).
+
+> `dic uncanonical` (search for the word "uncanonical" in the Oxford dictionary)
+>
+> `whois flowlauncher.com` (search for the domain "flowlauncher.com" in whois database)
+>
+> `tr en fr uncanny` (translates from english to french the word "uncanny")
+> 
+> `tr en conlleva` (translates from any language to english the word "conlleva")
