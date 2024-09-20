@@ -24,8 +24,12 @@ Use simple notations to convert to decimal: 0b for binary, 0o for octal, 0x for 
 To specify bases, use suffixes (one letter for starting base and one letter for ending base):
 
 > `1485do` = 2715 (decimal to octal)
-> 
+
 > `1010bh` = A (binary to hexadecimal)
+
+To convert between any base between 2 and 62, use the notation `number base_from>base_to`:
+
+> `251abd 16>62` = ACab (hex to base 62)
 
 ### Authorized math functions:
 pi, cos, sin, tan, abs, log, log10, log2, exp, sqrt, acos, asin, atan, atan2, ceil,
@@ -117,3 +121,7 @@ Enter a color code (hex or RGB) to display the right color with all informations
 > `#dd2266` [pink:   #dd2266    RGB(221, 34, 102)    HSL(338°, 73%, 50%)]
 > 
 > `122,140,250` [blue light:   #7A8CFA    RGB(122, 140, 250)    HSL(232°, 93%, 73%)]
+
+### Fast web searches
+
+Search the web using custom keywords. See websearches.json for examples.

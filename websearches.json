@@ -1,0 +1,17 @@
+{
+    "whois": {
+        "name": "Whois Search",
+        "search": "https://www.whois.com/whois/{q}",
+        "link": "https://www.whois.com/whois/"
+    },
+    "fres": {
+        "name": "Google Translate fr-es",
+        "search": "https://translate.google.fr/?sl=fr&tl=es&text={q}&op=translate",
+        "link": "https://translate.google.fr/"
+    },
+    "esfr": {
+        "name": "Google Translate es-fr",
+        "search": "https://translate.google.fr/?sl=es&tl=fr&text={q}&op=translate",
+        "link": "https://translate.google.fr/"
+    }
+}

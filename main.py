@@ -3,6 +3,9 @@ from sys import path
 from math import pi, cos, sin, tan, log, log10, log2, exp, sqrt, acos, asin, atan, atan2, ceil, floor, degrees, radians, trunc, factorial, gcd, pow
 import warnings
 from re import findall, subn, sub, match, fullmatch
+from json import loads
+from urllib.parse import quote_plus
+import webbrowser
 
 basedir = dirname(abspath(__file__))
 path.append(join(basedir, "lib"))
@@ -10,11 +13,19 @@ path.append(join(basedir, "lib"))
 from flowlauncher import FlowLauncher
 
 icon_path = join(basedir, "fabcalc.png")
+ws_icon_path = join(basedir, "websearch.png")
 funcs = ["prime", "uuid", "now", "factors", "series", "expand_trig", "exp", "limit", "oo", "simplify", "integrate", "diff", "expand", "solve", "Fraction", "factor", "pi", "cos", "sin", "tan", "abs", "log", "log10", "log2", "exp", "sqrt", "acos", "asin", "atan", "atan2", "ceil", "floor", "degrees", "radians", "trunc", "round", "factorial", "gcd", "pow"]
 funcs_pattern = r'\b(?:' + '|'.join(funcs) + r')\b'
-
+websearches_path = join(basedir, "websearches.json")
+websearches = {}
 
 class FabCalc(FlowLauncher):
+
+    @staticmethod
+    def searches():
+        global websearches
+        if not websearches: websearches = loads(open(websearches_path).read())
+        return websearches
 
     @staticmethod
     def create_bmp(rgb=(255, 255, 255)):
@@ -146,12 +157,14 @@ class FabCalc(FlowLauncher):
         return str(num) if num < 1000 else f"{num:_}".replace("_", " ")
 
     @staticmethod
-    def res(title: str, subtitle: str, icon=""):
+    def res(title: str, subtitle: str, icon="", url=""):
+        if url: action = {"method": "open_url", "parameters": [url]}
+        else: action = {"method": "copy_to_clipboard", "parameters": [title]}
         return {
             'Title': title,
             'SubTitle': subtitle,
             'IcoPath': icon if icon else icon_path,
-            "JsonRPCAction": {"method": "copy_to_clipboard", "parameters": [title]}
+            "JsonRPCAction": action
         }
 
     # noinspection PyMethodMayBeStatic
@@ -161,8 +174,36 @@ class FabCalc(FlowLauncher):
         from subprocess import run
         run("clip", input=text.encode('UTF-16LE'), check=True)
 
+    @staticmethod
+    def base62_to_decimal(number):
+        chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+        decimal = 0
+        power = 0
+        for digit in reversed(number):
+            decimal += chars.index(digit) * (62 ** power)
+            power += 1
+        return decimal
+
     def basecalc(self, query: str):
         q = query
+        names = {2: "bin", 8: "oct", 10: "dec", 16: "hex"}
+        
+        # Case 1: specific bases notation
+        if ">" in q and q.count(" ") == 1:
+            num, bases = q.split(" ")
+            if bases.count(">") != 1: return False
+            b1, b2 = bases.split(">")
+            if not b1.isdigit() or not b2.isdigit(): return False
+            b1, b2 = int(b1), int(b2)
+            if b1 < 2 or b1 > 62 or b2 < 2 or b2 > 62 or b1 == b2: return False
+            name1, name2 = names.get(b1, f"base {b1}"), names.get(b2, f"base {b2}")
+            try:
+                val10 = int(num, b1) if b1 <= 36 else FabCalc.base62_to_decimal(num)
+                return [self.res(self.int2str(val10, b2), f"{num} ({name1} → {name2})")]
+            except:
+                return False
+
+
         if q.startswith("0x"): q = q[2:].upper() + "h"
         elif q.startswith("0d"): q = q[2:].upper() + "d"
         elif q.startswith("0b"): q = q[2:] + "b"
@@ -175,7 +216,6 @@ class FabCalc(FlowLauncher):
         if prev in "hdbo": b1, b2, num = ivals[prev], ivals[last], q[:-2]
         else: b1, b2, num = ivals[last], ivals[("h" if last == "d" else "d")], q[:-1]
 
-        names = {2: "bin", 8: "oct", 10: "dec", 16: "hex"}
         try:
             res = FabCalc.int2str(int(num, b1), b2)
         except:
@@ -356,6 +396,21 @@ class FabCalc(FlowLauncher):
     @staticmethod
     def flog(val):
         open(join(basedir, "log.txt"), "a+").write(f"{val}\n")
+    
+    def websearch(self, entry):
+        p = entry.find(" ")
+        if p == -1:
+            res = self.searches().get(entry, {})
+            if not res: return False
+            return [self.res(res["name"], res["link"], ws_icon_path, res["link"])]
+        key = entry[:p]
+        res = self.searches().get(key, {})
+        if not res: return False
+        query = entry[p + 1:]
+        # url encode the query with urllib.parse.quote_plus
+        url = res["search"].replace("{q}", quote_plus(query))
+        return [self.res(res["name"], f"Search for: {query}", ws_icon_path, url)]
+        
 
     def query(self, entry: str = ''):
         with warnings.catch_warnings():
@@ -365,7 +420,12 @@ class FabCalc(FlowLauncher):
             try:
                 # Special entries (hash, UUID, base conversion)
                 if entry == "uuid": return FabCalc.uuids()
-                if entry == "myip": return self.ip()
+                if entry in ("myip", "ip"): return self.ip()
+                
+                # Web searches
+                res = self.websearch(entry)
+                if res: return res
+                
                 if len(entry) in (4,7) and entry.startswith("#") and match(r"^#([A-Fa-f\d]{3}|[A-Fa-f\d]{6})$", entry): return self.color(entry)
                 if entry.count(",") == 2 and match(r"^\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}$", entry): return self.color(entry)
                 if self.is_hash(entry): return [self.res(self.hashes(entry), f"{entry}: press Enter to copy to clipboard")]
@@ -407,6 +467,9 @@ class FabCalc(FlowLauncher):
     def bigint(val):
         s = str(val).replace(" ", "")
         return len(s) > 10 and s.isdigit()
+
+    def open_url(self, url):
+        webbrowser.open(url)
 
 
 def prime(val): return FabCalc.main_isprime(int(val))
