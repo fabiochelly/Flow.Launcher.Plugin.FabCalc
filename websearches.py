@@ -1,4 +1,4 @@
-{
+websearches = {
     "whois": {
         "name": "Whois Search",
         "search": "https://www.whois.com/whois/{q}",

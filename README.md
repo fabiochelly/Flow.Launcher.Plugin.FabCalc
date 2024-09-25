@@ -124,7 +124,7 @@ Enter a color code (hex or RGB) to display the right color with all informations
 
 ### Fast web searches
 
-Search the web using custom keywords (edit the file websearches.json to add your own websites).
+Search the web using custom keywords (edit the file websearches.py to add your own websites).
 
 > `dic uncanonical` (search for the word "uncanonical" in the Oxford dictionary)
 >

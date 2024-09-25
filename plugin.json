@@ -2,13 +2,13 @@
     "ID": "4f9e42bbcd9045e1969f97293dfaf4c7",
     "ActionKeyword": "*",
     "Name": "FabCalc",
-    "Description": "Advanced algebraic and symbolic Calculator",
+    "Description": "Advanced Calculator (symbolic, numeric, UUID, IP, dates, websearches, etc.)",
     "Author": "Fabio",
-    "Version": "1.4.1",
+    "Version": "1.4.2",
     "Language": "python",
     "Website": "https://github.com/fabiochelly/Flow.Launcher.Plugin.FabCalc",
     "IcoPath": "fabcalc.png",
     "ExecuteFileName": "main.py",
-    "UrlDownload": "https://github.com/fabiochelly/Flow.Launcher.Plugin.FabCalc/releases/download/v1.4.1/Flow.Launcher.Plugin.FabCalc.zip",
+    "UrlDownload": "https://github.com/fabiochelly/Flow.Launcher.Plugin.FabCalc/releases/download/v1.4.2/Flow.Launcher.Plugin.FabCalc.zip",
     "UrlSourceCode": "https://github.com/fabiochelly/Flow.Launcher.Plugin.FabCalc/tree/main"
 }

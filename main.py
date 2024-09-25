@@ -3,7 +3,6 @@ from sys import path
 from math import pi, cos, sin, tan, log, log10, log2, exp, sqrt, acos, asin, atan, atan2, ceil, floor, degrees, radians, trunc, factorial, gcd, pow
 import warnings
 from re import findall, subn, sub, match, fullmatch
-from json import loads
 from urllib.parse import quote_plus
 import webbrowser
 
@@ -16,22 +15,18 @@ icon_path = join(basedir, "fabcalc.png")
 ws_icon_path = join(basedir, "websearch.png")
 funcs = ["prime", "uuid", "now", "factors", "series", "expand_trig", "exp", "limit", "oo", "simplify", "integrate", "diff", "expand", "solve", "Fraction", "factor", "pi", "cos", "sin", "tan", "abs", "log", "log10", "log2", "exp", "sqrt", "acos", "asin", "atan", "atan2", "ceil", "floor", "degrees", "radians", "trunc", "round", "factorial", "gcd", "pow"]
 funcs_pattern = r'\b(?:' + '|'.join(funcs) + r')\b'
-websearches_path = join(basedir, "websearches.json")
-websearches = {}
+
+# def flog(s):
+#     from datetime import datetime
+#     now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+#     open(join(basedir, "fabcalc.log"), "a").write(f"{now} {s}\n")
 
 class FabCalc(FlowLauncher):
-
     @staticmethod
-    def searches():
-        global websearches
-        if not websearches: websearches = loads(open(websearches_path).read())
-        return websearches
-
-    @staticmethod
-    def create_bmp(rgb=(255, 255, 255)):
-        header = b"BMF\x00\x00\x00\x00\x00\x00\x00\x36\x00\x00\x00\x28\x00\x00\x00\x02\x00\x00\x00\x02\x00\x00\x00\x01\x00\x18\x00\x00\x00\x00\x00\x10\x00\x00\x00\x13\x0B\x00\x00\x13\x0B\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
-        pixel_row = bytes(rgb[::-1]) * 2 + b'\x00\x00'
-        return header + pixel_row * 2
+    def create_bmp(rgb):
+        header = b"BM60\x00\x00\x00\x00\x00\x00\x36\x00\x00\x00\x28\x00\x00\x00\x40\x00\x00\x00\x40\x00\x00\x00\x01\x00\x18\x00\x00\x00\x00\x00\x000\x00\x00\x13\x0B\x00\x00\x13\x0B\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+        pixels = bytes(rgb[::-1]) * 64 * 64
+        return header + pixels
 
     @staticmethod
     def format_date(expr, result):
@@ -392,19 +387,14 @@ class FabCalc(FlowLauncher):
         open(ico, "wb").write(FabCalc.create_bmp(rgb))
         return [FabCalc.res(f"{name}:   #{clr}    RGB{rgb}    HSL({hue}, {sat}, {lig})", f"Color details for {entry}", ico)]
 
-
-    @staticmethod
-    def flog(val):
-        open(join(basedir, "log.txt"), "a+").write(f"{val}\n")
     
     def websearch(self, entry):
         p = entry.find(" ")
-        if p == -1:
-            res = self.searches().get(entry, {})
-            if not res: return False
-            return [self.res(res["name"], res["link"], ws_icon_path, res["link"])]
+        if p == -1: return False
+        path.append(basedir)
+        from websearches import websearches
         key = entry[:p]
-        res = self.searches().get(key, {})
+        res = websearches.get(key, {})
         if not res: return False
         query = entry[p + 1:]
         
