@@ -439,6 +439,8 @@ class FabCalc(FlowLauncher):
                 query = query.strip().replace("^", "**")
                 
                 # Percentages
+                query = sub(r"(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)\s*%", r"\1-(\1*\2/100)", query)
+                query = sub(r"(\d+(?:\.\d+)?)\s*\+\s*(\d+(?:\.\d+)?)\s*%", r"\1+(\1*\2/100)", query)
                 query = sub(r"(\d+(?:\.\d+)?)\s*%", r"(\1/100)", query)
                 query = query.replace('%', '/100.0')
                 
